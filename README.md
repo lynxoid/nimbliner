@@ -40,6 +40,7 @@ Reads 2: long, high error rate.
 ## Goals: 
  
 - [ ] engineer a testing pipeline; write tests, python code for plotting; script to install/run
+- [ ] integrate with TravisCI
 - [ ] find a mapping location for a read, provide mapping quality score, produce positions for reads w/ errors (more kmers sampled)
 - [ ] alignment on the laptop (if less memory -- slower, if more memory -- faster)
 - [ ] produce full alignments, not just the positions
