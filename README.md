@@ -38,19 +38,15 @@ Reads 1: short, low error rate.
 Reads 2: long, high error rate.
 
 ## Goals: 
- - find a mapping location for a read, provide mapping quality score
- - produce a full alignment
- - alignment on the laptop (if less memory -- slower, if more memory -- faster)
  
+- [ ] engineer a testing pipeline; write tests, python code for plotting; script to install/run
+- [ ] find a mapping location for a read, provide mapping quality score, produce positions for reads w/ errors (more kmers sampled)
+- [ ] alignment on the laptop (if less memory -- slower, if more memory -- faster)
+- [ ] produce full alignments, not just the positions
+- [ ] produce full SAM/BAM
+- [ ] test speed/performance on long reads
 
-- [ ] Milestone -2: engineer a testing pipeline; write tests, python code for plotting; script to install/run
-- [ ] Milestone -1: produce positions for reads w/ errors (more kmers sampled)
-- [ ] Milestone 0: produce full alignments, not just the positions
-- [ ] Milestone 1: produce SAM/BAM
-- [ ] Milestone 2: test for long reads
-
-
-###Comparisons:
+## Comparisons:
  - DALIGNER
  - STAR
  - RapMap
