@@ -40,6 +40,9 @@ Reads 2: long, high error rate.
 ## Goals: 
  
 - [ ] engineer a testing pipeline; write tests, python code for plotting; script to install/run
+  -  [ ] download WGS data for illumina (reference, reads)
+  -  [ ] snakemake pipeline
+  -  [ ] testing frameworks for python, C++, seq. data
 - [ ] integrate with TravisCI
 - [ ] find a mapping location for a read, provide mapping quality score, produce positions for reads w/ errors (more kmers sampled)
 - [ ] alignment on the laptop (if less memory -- slower, if more memory -- faster)
