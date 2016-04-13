@@ -53,4 +53,5 @@ Reads 2: long, high error rate.
 ## Comparisons:
  - DALIGNER
  - STAR
- - RapMap
+ - BWA
+ - RapMap (speed-only, RapMap does not generate full alignments)
