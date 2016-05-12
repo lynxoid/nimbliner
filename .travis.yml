@@ -1,8 +1,9 @@
-install: make get-deps
-compiler: clang
+compiler: clang++
 language: cpp
 os:
 - linux
 - osx
+script:
+    - make
 after_success:
 - if [ $TRAVIS_BRANCH == $TRAVIS_TAG ]; then ./scripts/deploy.sh release github website triggers; fi
