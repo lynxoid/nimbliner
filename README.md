@@ -2,6 +2,8 @@
 
 You need libbf. Dont forget about DYLD_LIBRARY_PATH / DYLD_FALLBACK_LIBRARY_PATH.
 
+### Installation ###
+
 ### Run
 
 To index a chromosome:

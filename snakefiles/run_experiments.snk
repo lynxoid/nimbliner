@@ -1,4 +1,0 @@
-rule run_all_experiments:
-  input:
-    "pdf/seed_len_vs_gap.pdf",
-    "pdf/error_rate_vs_speed.pdf"

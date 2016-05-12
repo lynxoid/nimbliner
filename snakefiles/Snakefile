@@ -1,0 +1,80 @@
+
+config: "experiments.json"
+
+"""
+"""
+rule run_all_experiments:
+  input:
+    "plots/seed_len_vs_gap.pdf",
+    "plots/error_rate_vs_speed.pdf"
+
+"""
+Run an alignment
+"""
+run map_with_nimbliner:
+	input:
+		index="{work_dir}/index/{reference}.index",
+		reads="{input}/{dataset}.fa"
+	output:
+		"{work_dir}/alignments/{dataset}.aligned"
+	shell:
+		"./kmers query {K} {reads} {bf_kmers} {star_kmers}"
+
+"""
+Run the tool to build an index
+"""
+rule build_index:
+	input:
+		code="src-cpp/kmer_location.cpp",
+		chromo="{input}/{reference}.fa"
+	output:
+		kmers="{work_dir}/index/{reference}.bf_kmers",
+		stars="{work_dir}/index/{reference}.stars",
+	shell:
+		"./kmers index {wildcards.K} {inputs.chromo}"
+
+
+"""
+Compile if any of the input file have changed
+"""
+rule compile_project:
+	input:
+		"src-cpp/kmer_location.cpp",
+		"src-cpp/sample_reads.cpp",
+		"src-cpp/*.hpp"
+	output:
+		"kmers"
+	shell:
+		"make clean; make"
+
+
+"""
+Run the sampling w/o errors
+"""
+rule sample_human_chr_no_error:
+	input:
+		"{input}/{reference}.fa"
+	output:
+		"{work_dir}/"
+
+
+"""
+Download PacBio lambda virus data
+"""
+rule download_pacbio_data:
+	output:
+	shell:
+
+"""
+Download illumina NA128... WGS dataset
+"""
+rule download_illumina_wgs_data:
+	output:
+		expand("")
+	shell:
+		"touch {output}"
+
+"""
+Download human chromosome (parametrized)
+"""
+rule download_human_chr:
