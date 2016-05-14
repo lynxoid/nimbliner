@@ -312,7 +312,7 @@ void queryReads(const string & path, int K, BaseBloomFilter & bf,
     }
     cerr << "Resolving ops: " << elapsed_seconds_str.count() << "s" << endl;
     // cerr << "String ops: " << elapsed_seconds_str.count() << "s" << endl;
-    cerr << "Passed 45% cutoff: " << passed_cutoff << endl;
+    // cerr << "Passed 45% cutoff: " << passed_cutoff << endl;
     cerr << "Times needed to extend the read: " << need_to_extend_read << endl;
 }
 

@@ -5,8 +5,10 @@
 # darya.filippova@gmail.com
 #
 
-
 # config: "experiments.json"
+
+import sys
+sys.path.append("py-src")
 
 """
 """
@@ -15,12 +17,15 @@ rule do_all_the_stuff:
 		# expand("{work_dir}/{reference}/alignments/sampled_100_1000000.aligned", 
 		# 			work_dir=config["work_dir"],
 		# 			reference=config["reference"]),
-		expand("{work_dir}/{reference}/analysis/sampled_100_1000000_eval.txt",
-					work_dir=config["work_dir"],
-					reference=config["reference"])
+		expand("{work_dir}/{reference}/analysis/sampled_{readlen}_{count}_eval.txt",
+					zip,
+					work_dir=[config["work_dir"] for i in range(3)],
+					reference=[config["reference"] for i in range(3)],
+					readlen=[100, 300, 1000],
+					count=[1000000, 300000, 10000]
+					)
 	shell:
 		"echo 'DONE'"
-
 
 rule evaluate_alignment:
 	input:
@@ -28,46 +33,8 @@ rule evaluate_alignment:
 	output:
 		"{work_dir}/{reference}/analysis/{dataset}_eval.txt"
 	run:
-		with open(output[0], "w") as f_out:
-			true_single = 0
-			mismapped = 0
-			unmapped = 0
-			multimapped_has_true = 0
-			multimapped_no_true = 0
-			with open(input[0], "r") as f_in:
-				
-				for line in f_in:
-					parts = line.strip().split("\t")
-					if len(parts) < 2:
-						unmapped += 1
-						continue
-					true_location = parts[0]
-					observed_locations = parts[1]
-					observed_locations = observed_locations.split(" ")
-					if len(observed_locations) == 1:
-						if true_location == observed_locations[0]:
-							true_single += 1
-						else:
-							mismapped += 1
-					elif len(observed_locations) == 0:
-						unmapped += 1
-					else:
-						has_true = False
-						for obs in observed_locations:
-							if obs == true_location:
-								has_true = True
-								break
-						if has_true: multimapped_has_true += 1
-						else: multimapped_no_true += 1
-			f_out.write("true_single: {}\n".format(true_single))
-			f_out.write("mismapped: {}\n".format(mismapped))
-			f_out.write("unmapped: {}\n".format(unmapped))
-			f_out.write("multimapped_no_true: {}\n".format(multimapped_no_true))
-			f_out.write("multimapped_has_true: {}\n".format(multimapped_has_true))
-			total = true_single + mismapped + unmapped + multimapped_has_true + multimapped_no_true
-			f_out.write("mapping rate: {}\n".format( 1 - unmapped / float(total) ) )
-			f_out.write("recovered at least 1 correct: {}\n".format( (true_single + multimapped_has_true) / float(total) ) )
-
+		import stats
+		stats.compute_basic_stats(input[0], output[0])
 
 
 rule align_reads:
@@ -78,9 +45,11 @@ rule align_reads:
 		binary="bin/mapper"
 	output:
 		"{work_dir}/{reference}/alignments/{dataset}.aligned"
+	log:
+		"{work_dir}/{reference}/log/align_{dataset}.log"
 	params: K=config["K"]
 	shell:
-		"./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output}"
+		"./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output} 2> {log}"
 
 
 """
@@ -94,11 +63,13 @@ rule build_index:
 						reference=config["reference"]),
 		binary="bin/mapper"
 	params: K=config["K"]
+	log:
+		"{work_dir}/{reference}/log/index_{reference}.log"
 	output:
 		index="{work_dir}/index/{reference}.index",
 		stars="{work_dir}/index/{reference}.star"
 	shell:
-		"./{input.binary} index {params.K} {input.ref};"
+		"./{input.binary} index {params.K} {input.ref} 2> {log};"
 		# drops all_kmers.txt and star_locations.txt files into the current dir
 		"mv all_kmers.txt {output.index};"
 		"mv star_locations.txt {output.stars}"
@@ -116,18 +87,6 @@ rule compile_aligner:
 		"rm -f {output}; make mapper"
 
 
-"""
-Compile if any of the input file have changed
-"""
-rule compile_sampler:
-	input:
-		"cpp-src/sample_reads.cpp",
-	output:
-		"bin/sample"
-	shell:
-		"rm -f {output}; make sample"
-
-
 
 """
 Run the sampling w/o errors
@@ -140,9 +99,25 @@ rule sample_reference_no_error:
 		binary="bin/sample"
 	output:
 		"{work_dir}/{reference}/sampled/sampled_{R}_{N}.fa"
+	log:
+		"{work_dir}/{reference}/log/sample_{R}_{N}.log"
 	shell:
-		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} > {output};"
+		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} > {output} 2> {log};"
 		# "ln -s {output} {wilcards.input}/sampled_{wildcards.R}_{wildcards.N}.fa"
+
+
+
+
+"""
+Compile if any of the input file have changed
+"""
+rule compile_sampler:
+	input:
+		"cpp-src/sample_reads.cpp",
+	output:
+		"bin/sample"
+	shell:
+		"rm -f {output}; make sample"
 
 
 """
