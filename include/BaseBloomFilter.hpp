@@ -5,10 +5,10 @@
 
 #include <bf.h>
 
+#include "definitions.hpp"
+
 using namespace std;
 
-// kmer type
-typedef uint64_t kmer_t;
 
 class BaseBloomFilter {
 protected:
