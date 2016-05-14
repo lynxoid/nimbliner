@@ -57,7 +57,7 @@ Run the tool to build an index
 """
 rule build_index:
 	input:
-		code="cpp-src/kmer_location.cpp",
+		code="src/kmer_location.cpp",
 		ref=expand("{input}/{reference}.fa", 
 						input=config["input_dir"], 
 						reference=config["reference"]),
@@ -80,7 +80,7 @@ Compile if any of the input file have changed
 """
 rule compile_aligner:
 	input:
-		"cpp-src/kmer_location.cpp"
+		"src/kmer_location.cpp"
 	output:
 		"bin/mapper"
 	shell:
@@ -113,7 +113,7 @@ Compile if any of the input file have changed
 """
 rule compile_sampler:
 	input:
-		"cpp-src/sample_reads.cpp",
+		"src/sample_reads.cpp",
 	output:
 		"bin/sample"
 	shell:

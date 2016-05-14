@@ -1,6 +1,6 @@
 BIN=bin
-SRC=cpp-src
-INCLUDE=-I /usr/local/include/
+SRC=src
+INCLUDE=-I /usr/local/include/ -I include/
 LIB=-L /usr/local/lib/
 FLAGS=-O3 -std=c++11
 
