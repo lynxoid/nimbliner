@@ -1,61 +1,148 @@
+#
+# Nimble aligner for short and long reads
+# Darya Filippova, 2015-2016
+#
+# darya.filippova@gmail.com
+#
 
-config: "experiments.json"
+
+# config: "experiments.json"
 
 """
 """
-rule run_all_experiments:
-  input:
-    "plots/seed_len_vs_gap.pdf",
-    "plots/error_rate_vs_speed.pdf"
+rule do_all_the_stuff:
+	input:
+		# expand("{work_dir}/{reference}/alignments/sampled_100_1000000.aligned", 
+		# 			work_dir=config["work_dir"],
+		# 			reference=config["reference"]),
+		expand("{work_dir}/{reference}/analysis/sampled_100_1000000_eval.txt",
+					work_dir=config["work_dir"],
+					reference=config["reference"])
+	shell:
+		"echo 'DONE'"
 
-"""
-Run an alignment
-"""
-run map_with_nimbliner:
+
+rule evaluate_alignment:
+	input:
+		"{work_dir}/{reference}/alignments/{dataset}.aligned"
+	output:
+		"{work_dir}/{reference}/analysis/{dataset}_eval.txt"
+	run:
+		with open(output[0], "w") as f_out:
+			true_single = 0
+			mismapped = 0
+			unmapped = 0
+			multimapped_has_true = 0
+			multimapped_no_true = 0
+			with open(input[0], "r") as f_in:
+				
+				for line in f_in:
+					parts = line.strip().split("\t")
+					if len(parts) < 2:
+						unmapped += 1
+						continue
+					true_location = parts[0]
+					observed_locations = parts[1]
+					observed_locations = observed_locations.split(" ")
+					if len(observed_locations) == 1:
+						if true_location == observed_locations[0]:
+							true_single += 1
+						else:
+							mismapped += 1
+					elif len(observed_locations) == 0:
+						unmapped += 1
+					else:
+						has_true = False
+						for obs in observed_locations:
+							if obs == true_location:
+								has_true = True
+								break
+						if has_true: multimapped_has_true += 1
+						else: multimapped_no_true += 1
+			f_out.write("true_single: {}\n".format(true_single))
+			f_out.write("mismapped: {}\n".format(mismapped))
+			f_out.write("unmapped: {}\n".format(unmapped))
+			f_out.write("multimapped_no_true: {}\n".format(multimapped_no_true))
+			f_out.write("multimapped_has_true: {}\n".format(multimapped_has_true))
+			total = true_single + mismapped + unmapped + multimapped_has_true + multimapped_no_true
+			f_out.write("mapping rate: {}\n".format( 1 - unmapped / float(total) ) )
+			f_out.write("recovered at least 1 correct: {}\n".format( (true_single + multimapped_has_true) / float(total) ) )
+
+
+
+rule align_reads:
 	input:
 		index="{work_dir}/index/{reference}.index",
-		reads="{input}/{dataset}.fa"
+		stars="{work_dir}/index/{reference}.star",
+		reads="{work_dir}/{reference}/sampled/{dataset}.fa",
+		binary="bin/mapper"
 	output:
-		"{work_dir}/alignments/{dataset}.aligned"
+		"{work_dir}/{reference}/alignments/{dataset}.aligned"
+	params: K=config["K"]
 	shell:
-		"./kmers query {K} {reads} {bf_kmers} {star_kmers}"
+		"./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output}"
+
 
 """
 Run the tool to build an index
 """
 rule build_index:
 	input:
-		code="src-cpp/kmer_location.cpp",
-		chromo="{input}/{reference}.fa"
+		code="cpp-src/kmer_location.cpp",
+		ref=expand("{input}/{reference}.fa", 
+						input=config["input_dir"], 
+						reference=config["reference"]),
+		binary="bin/mapper"
+	params: K=config["K"]
 	output:
-		kmers="{work_dir}/index/{reference}.bf_kmers",
-		stars="{work_dir}/index/{reference}.stars",
+		index="{work_dir}/index/{reference}.index",
+		stars="{work_dir}/index/{reference}.star"
 	shell:
-		"./kmers index {wildcards.K} {inputs.chromo}"
+		"./{input.binary} index {params.K} {input.ref};"
+		# drops all_kmers.txt and star_locations.txt files into the current dir
+		"mv all_kmers.txt {output.index};"
+		"mv star_locations.txt {output.stars}"
 
 
 """
 Compile if any of the input file have changed
 """
-rule compile_project:
+rule compile_aligner:
 	input:
-		"src-cpp/kmer_location.cpp",
-		"src-cpp/sample_reads.cpp",
-		"src-cpp/*.hpp"
+		"cpp-src/kmer_location.cpp"
 	output:
-		"kmers"
+		"bin/mapper"
 	shell:
-		"make clean; make"
+		"rm -f {output}; make mapper"
+
+
+"""
+Compile if any of the input file have changed
+"""
+rule compile_sampler:
+	input:
+		"cpp-src/sample_reads.cpp",
+	output:
+		"bin/sample"
+	shell:
+		"rm -f {output}; make sample"
+
 
 
 """
 Run the sampling w/o errors
 """
-rule sample_human_chr_no_error:
+rule sample_reference_no_error:
 	input:
-		"{input}/{reference}.fa"
+		ref=expand("{input}/{reference}.fa", 
+					input=config["input_dir"], 
+					reference=config["reference"]),
+		binary="bin/sample"
 	output:
-		"{work_dir}/"
+		"{work_dir}/{reference}/sampled/sampled_{R}_{N}.fa"
+	shell:
+		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} > {output};"
+		# "ln -s {output} {wilcards.input}/sampled_{wildcards.R}_{wildcards.N}.fa"
 
 
 """
@@ -64,6 +151,7 @@ Download PacBio lambda virus data
 rule download_pacbio_data:
 	output:
 	shell:
+		"echo 'Download pacbio data'"
 
 """
 Download illumina NA128... WGS dataset
@@ -78,3 +166,6 @@ rule download_illumina_wgs_data:
 Download human chromosome (parametrized)
 """
 rule download_human_chr:
+	params: "ftp:long_url."
+	shell:
+		"echo 'download human chr'"

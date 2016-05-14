@@ -27,8 +27,11 @@ vector<string> parseFasta(string const & path) {
 //
 ////////////////////////////////////////////////////////////////
 int main(int argc, char * argv []) {
+	// read length
 	int R = stoi(argv[1]);
+	// number of reads to sample
 	int N = stoi(argv[2]);
+	// reference sequence to sample from
 	auto chromosomes = parseFasta(argv[3]);
 	assert(chromosomes.size() > 0);
 	string chr = chromosomes[0];

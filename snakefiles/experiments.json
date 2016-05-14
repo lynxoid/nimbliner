@@ -1,5 +1,7 @@
 {
 	"work_dir": 	"data/output",
 	"input_dir": 	"data/input",
-	"plots": 		"plots"
+	"reference":	"hxb2",
+	"plots": 		"plots",
+	"K":			20
 }

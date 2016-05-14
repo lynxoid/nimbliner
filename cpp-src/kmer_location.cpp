@@ -190,13 +190,14 @@ vector<int> resolve_mapping_locations(vector<pair<kmer_t,int>> & matched_stars,
 	int & extend) {
 	vector<int> mappings;
 
-	// what if only one star?
+	// what if no stars mapped?
 	if (matched_stars.size() == 0) {
 		// need to extend the read until we hit some star
 		extend++;
 	}
 	if (matched_stars.size() == 1) {
 		// that's the only thing we got going
+		// TODO: extend to find more stars
 		auto locations = star_locations[matched_stars[0].first];
 		for (auto loc : locations)
 			mappings.push_back(loc - matched_stars[0].second);
@@ -253,13 +254,15 @@ void queryReads(const string & path, int K, BaseBloomFilter & bf,
     while ( (seq = fr.nextSequence() ) ) {
     	read_count++;
     	if (read_count % 100000 == 0) cerr << read_count / 100000 << "00K ";
+    	// cerr << seq->seq.l << " " << K << endl;
         if (seq->seq.l < K) continue;
         // stream through BF
         vector<pair<kmer_t,int>> matched_stars;
         float cnt_matched = 0.0f;
         int L = seq->seq.l - K + 1;
+        // only allow reads shorter than 2^16
         assert(L < 65536);
-        int true_pos = stoi(seq->name.s);
+        // int true_pos = stoi(seq->name.s);
         auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
         //if (bf.contains(bin_kmer) ) {
         //        cnt_matched++;
@@ -284,7 +287,7 @@ void queryReads(const string & path, int K, BaseBloomFilter & bf,
                 //        cnt_matched++;
                         // check if hit a star kmer
                         if (star_locations.find(bin_kmer) != star_locations.end() )
-                                matched_stars.emplace_back(bin_kmer, i);
+                                matched_stars.emplace_back(bin_kmer, i - K + 1);
                         if (matched_stars.size() >= 2) break;
                 //}
                 i++;
@@ -296,6 +299,14 @@ void queryReads(const string & path, int K, BaseBloomFilter & bf,
 		auto start = std::chrono::system_clock::now();
 		auto mapping_locations = resolve_mapping_locations(matched_stars, 
 			star_locations, need_to_extend_read);
+
+		// output all potential locations for this read
+		cout << seq->name.s << "\t";
+		for (const auto & loc : mapping_locations) {
+			cout << loc << " ";
+		}
+		cout << endl;
+
 		auto end = std::chrono::system_clock::now();
 		elapsed_seconds_str += end - start;
     }
@@ -336,10 +347,11 @@ int main(int argc, char * argv []) {
 
 		cerr << "reading stars" << endl;
 		auto star_locations = readStarLocations(stars_path, K);
+		cerr << "========================" << endl;
 		cerr << "CAN NOW TEST THE MAPPING" << endl;
 		end = std::chrono::system_clock::now();
 		elapsed_seconds = end-start;
-	    cerr << "setup: " << elapsed_seconds.count() << "s" << endl;
+	    cerr << "setup took: " << elapsed_seconds.count() << "s" << endl;
 
 	    ////////////////////////////////////////////////////////////////////////
 		// read one read at a time

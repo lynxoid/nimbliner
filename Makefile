@@ -1,9 +1,16 @@
+BIN=bin
+SRC=cpp-src
+INCLUDE=-I /usr/local/include/
+LIB=-L /usr/local/lib/
+FLAGS=-O3 -std=c++11
+
 all: sample mapper
-INCLUDES=-I /home/dpellow/libbf/src/
-LIBS=/home/dpellow/libbf/build/src/bf/
 
 sample:
-	g++ -O3 -std=c++11 -o sample cpp-src/sample_reads.cpp -I /usr/local/include/ -L /usr/local/lib/
+	g++ $(FLAGS) -o $(BIN)/sample $(SRC)/sample_reads.cpp $(INCLUDE) $(LIB)
 
 mapper:
-	g++ -O3 -std=c++11 -o mapper cpp-src/kmer_location.cpp $(INCLUDES) -I /usr/local/include/ -L /usr/local/lib/ -L $(LIBS) -lbf
+	g++ $(FLAGS) -o $(BIN)/mapper $(SRC)/kmer_location.cpp $(INCLUDE) $(LIB) -lbf
+
+clean:
+	rm -f sample mapper
