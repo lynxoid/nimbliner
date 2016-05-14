@@ -39,8 +39,8 @@ rule evaluate_alignment:
 
 rule align_reads:
 	input:
-		index="{work_dir}/index/{reference}.index",
-		stars="{work_dir}/index/{reference}.star",
+		index="{work_dir}/{reference}/index/{reference}.index",
+		stars="{work_dir}/{reference}/index/{reference}.star",
 		reads="{work_dir}/{reference}/sampled/{dataset}.fa",
 		binary="bin/mapper"
 	output:
@@ -66,8 +66,8 @@ rule build_index:
 	log:
 		"{work_dir}/{reference}/log/index_{reference}.log"
 	output:
-		index="{work_dir}/index/{reference}.index",
-		stars="{work_dir}/index/{reference}.star"
+		index="{work_dir}/{reference}/index/{reference}.index",
+		stars="{work_dir}/{reference}/index/{reference}.star"
 	shell:
 		"./{input.binary} index {params.K} {input.ref} 2> {log};"
 		# drops all_kmers.txt and star_locations.txt files into the current dir

@@ -9,8 +9,8 @@
 #include "FastaReader.h"
 #include "SeqBFUtil.hpp"
 
-#include "ReferenceIndex.hpp"
-#include "Aligner.hpp"
+#include "reference_index.hpp"
+#include "aligner.hpp"
 #include "definitions.hpp"
 
 using namespace std;

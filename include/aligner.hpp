@@ -8,7 +8,7 @@
 #ifndef ALIGNER
 #define ALIGNER
 
-#include "ReferenceIndex.hpp"
+#include "reference_index.hpp"
 #include "definitions.hpp"
 
 class Aligner {
