@@ -49,7 +49,7 @@ rule align_reads:
 		"{work_dir}/{reference}/log/align_{dataset}.log"
 	params: K=config["K"]
 	shell:
-		"./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output} 2> {log}"
+		"/usr/bin/time -lp ./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output} 2> {log}"
 
 
 """

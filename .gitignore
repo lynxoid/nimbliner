@@ -1,1 +1,6 @@
 .DS_store
+.snakemake
+bin/
+data/
+*cache*
+*.pdf
