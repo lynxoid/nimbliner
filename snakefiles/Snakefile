@@ -19,22 +19,23 @@ rule do_all_the_stuff:
 		# 			reference=config["reference"]),
 		expand("{work_dir}/{reference}/analysis/sampled_{readlen}_{count}_eval.txt",
 					zip,
-					work_dir=[config["work_dir"] for i in range(3)],
-					reference=[config["reference"] for i in range(3)],
-					readlen=[100, 300, 1000],
-					count=[1000000, 300000, 10000]
+					work_dir=[config["work_dir"] for i in range(4)],
+					reference=[config["reference"] for i in range(4)],
+					readlen=[100, 100, 300, 1000],
+					count=[100, 1000000, 300000, 10000]
 					)
 	shell:
 		"echo 'DONE'"
 
 rule evaluate_alignment:
 	input:
-		"{work_dir}/{reference}/alignments/{dataset}.aligned"
+		align="{work_dir}/{reference}/alignments/{dataset}.aligned",
+		script="py-src/stats.py"
 	output:
 		"{work_dir}/{reference}/analysis/{dataset}_eval.txt"
 	run:
 		import stats
-		stats.compute_basic_stats(input[0], output[0])
+		stats.compute_basic_stats(input.align, output[0])
 
 
 rule align_reads:
@@ -57,7 +58,7 @@ Run the tool to build an index
 """
 rule build_index:
 	input:
-		code="src/kmer_location.cpp",
+		code=["include/reference_indexl.hpp", "src/sample_reads.cpp"],
 		ref=expand("{input}/{reference}.fa", 
 						input=config["input_dir"], 
 						reference=config["reference"]),
@@ -80,7 +81,9 @@ Compile if any of the input file have changed
 """
 rule compile_aligner:
 	input:
-		"src/kmer_location.cpp"
+		"src/kmer_location.cpp",
+		"include/aligner.hpp",
+		"include/reference_index.hpp"
 	output:
 		"bin/mapper"
 	shell:

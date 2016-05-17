@@ -202,12 +202,12 @@ public:
 		return;
 	}
 
-	bool has_anchor(const kmer_t & kmer) {
+	bool has_anchor(const kmer_t & kmer) const {
 		return _stars->find(kmer) != _stars->end();
 	}
 
 	// TODO: what does this & do?
-	vector<int> & get_anchor_locations(const kmer_t & kmer) {
+	vector<int> & get_anchor_locations(const kmer_t & kmer) const {
 		return (*_stars)[kmer];
 	}
 };

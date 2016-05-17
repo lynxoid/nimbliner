@@ -2,6 +2,7 @@ def compute_basic_stats(in_path, out_path):
     with open(out_path, "w") as f_out:
         true_single = 0
         mismapped = 0
+        f_mismapped = open(out_path + ".mismapped", "w")
         unmapped = 0
         multimapped_has_true = 0
         multimapped_no_true = 0
@@ -19,6 +20,7 @@ def compute_basic_stats(in_path, out_path):
                     if true_location == observed_locations[0]:
                         true_single += 1
                     else:
+                        f_mismapped.write("{}\n".format(true_location))
                         mismapped += 1
                 elif len(observed_locations) == 0:
                     unmapped += 1
@@ -38,3 +40,4 @@ def compute_basic_stats(in_path, out_path):
         total = true_single + mismapped + unmapped + multimapped_has_true + multimapped_no_true
         f_out.write("mapping rate: {}\n".format( 1 - unmapped / float(total) ) )
         f_out.write("recovered at least 1 correct: {}\n".format( (true_single + multimapped_has_true) / float(total) ) )
+        f_mismapped.close()

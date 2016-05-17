@@ -15,6 +15,42 @@ class Aligner {
 
 	ReferenceIndex _index;
 
+	vector<int> findAllMatchingAnchorPositions(const vector<pair<kmer_t,int>> & matched_stars, 
+		const ReferenceIndex & index) {
+		assert(matched_stars.size() > 0);
+
+		vector<int> mappings;
+		auto first_star = matched_stars[0];
+		auto second_star = matched_stars[1];
+		int delta = second_star.second - first_star.second;
+
+		auto A = index.get_anchor_locations(first_star.first);
+		auto B = index.get_anchor_locations(second_star.first);
+		// auto A = star_locations[first_star.first];
+		// auto B = star_locations[second_star.first];
+		int i = 0, j = 0;
+		while (i < A.size() && j < B.size() ) {
+			if (A[i] < B[j]) {
+				if (B[j] - A[i] == delta) {
+					// found one match
+					mappings.push_back(A[i] - first_star.second);
+					i++;
+					j++;
+				} 
+				else if (B[j] - A[i] < delta) {
+					j++;
+				}
+				else {
+					i++;
+				}
+			}
+			else {
+				j++;
+			}
+		}
+		return mappings;
+	}
+
 	////////////////////////////////////////////////////////
 	//	matched_stars -- in order in which they appear in the read
 	//	resolve which of the star co-locations are the same distance
@@ -23,7 +59,7 @@ class Aligner {
 	//	--***-***-
 	//
 	////////////////////////////////////////////////////////
-	vector<int> resolve_mapping_locations(vector<pair<kmer_t,int>> & matched_stars, 
+	vector<int> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars, 
 		// unordered_map<kmer_t, vector<int>> & star_locations,
 		int & extend) {
 		vector<int> mappings;
@@ -41,40 +77,11 @@ class Aligner {
 				mappings.push_back(loc - matched_stars[0].second);
 		}
 		else if (matched_stars.size() >= 2) {
-			// if two stars	
-			auto first_star = matched_stars[0];
-			auto second_star = matched_stars[1];
-			int x = second_star.second - first_star.second;
+			// if two stars	or more
+			// TODO: take into account all the stars
 
-			auto A = _index.get_anchor_locations(first_star.first);
-			auto B = _index.get_anchor_locations(second_star.first);
-			// auto A = star_locations[first_star.first];
-			// auto B = star_locations[second_star.first];
-			int i = 0, j = 0;
-			while (i < A.size() && j < B.size() ) {
-				if (A[i] < B[j]) {
-					if (B[j] - A[i] == x) {
-						// found one match
-						i++;
-						j++;
-						mappings.push_back(A[i] - first_star.second);
-					} 
-					else if (B[j] - A[i] < x) {
-						j++;
-					}
-					else {
-						i++;
-					}
-				}
-				else {
-					j++;
-				}
-			}
+			mappings = findAllMatchingAnchorPositions(matched_stars, _index);
 		}
-		// else {
-			// what if more than 2 stars?
-			// OMG, what do we do now?!!
-		// }
 
 		return mappings;
 	}
@@ -135,7 +142,7 @@ public:
 	                        // check if hit a star kmer
 	                        if ( _index.has_anchor(bin_kmer) )
 	                                matched_stars.emplace_back(bin_kmer, i - K + 1);
-	                        if (matched_stars.size() >= 2) break;
+	                        // if (matched_stars.size() >= 2) break;
 	                //}
 	                i++;
 	        }
@@ -143,7 +150,9 @@ public:
 	        // if (cnt_matched / L < 0.45) continue;
 	        // passed_cutoff++;
 			// resolve star kmers to get an exact mapping location
+			cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << endl;
 			auto start = std::chrono::system_clock::now();
+
 			auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read);
 
 			// output all potential locations for this read
