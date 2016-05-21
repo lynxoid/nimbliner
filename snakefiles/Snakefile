@@ -10,23 +10,41 @@
 import sys
 sys.path.append("py-src")
 
+
 """
+Compile a pdf report
 """
-rule do_all_the_stuff:
+rule compile_pdf_report:
 	input:
-		# expand("{work_dir}/{reference}/alignments/sampled_100_1000000.aligned", 
-		# 			work_dir=config["work_dir"],
-		# 			reference=config["reference"]),
-		expand("{work_dir}/{reference}/analysis/sampled_{readlen}_{count}_eval.txt",
+		"plots/comparison_table.tex",
+		"plots/main.tex"
+	output:
+		"plots/main.pdf"
+	shell:
+		"cd plots; pdflatex main"
+
+"""
+Make a comparison table
+"""
+rule make_comparison_table:
+	input:
+		evals=expand("{work_dir}/{reference}/analysis/sampled_{readlen}_{count}_eval.txt",
 					zip,
 					work_dir=[config["work_dir"] for i in range(4)],
 					reference=[config["reference"] for i in range(4)],
 					readlen=[100, 100, 300, 1000],
 					count=[100, 1000000, 300000, 10000]
-					)
-	shell:
-		"echo 'DONE'"
+					),
+		script="py-src/latex.py"
+	output:
+		"plots/comparison_table.tex"
+	run:
+		import latex
+		latex.write_table(input.evals, output[0])
 
+
+"""
+"""
 rule evaluate_alignment:
 	input:
 		align="{work_dir}/{reference}/alignments/{dataset}.aligned",
@@ -38,6 +56,9 @@ rule evaluate_alignment:
 		stats.compute_basic_stats(input.align, output[0])
 
 
+"""
+Align reads to the reference using the index; log the performance
+"""
 rule align_reads:
 	input:
 		index="{work_dir}/{reference}/index/{reference}.index",
@@ -58,7 +79,7 @@ Run the tool to build an index
 """
 rule build_index:
 	input:
-		code=["include/reference_indexl.hpp", "src/sample_reads.cpp"],
+		code=["include/reference_index.hpp", "src/sample_reads.cpp"],
 		ref=expand("{input}/{reference}.fa", 
 						input=config["input_dir"], 
 						reference=config["reference"]),
