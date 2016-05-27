@@ -75,16 +75,16 @@ def compute_basic_bwa_stats(in_path, out_path):
     true_to_observed = {}
     unmapped = 0
     for alignment in samfile.fetch(until_eof=True):
-        true_pos = int(alignment.query_name.split("_")[1])
+        # true_obs = int(alignment.query_name.split("_")[1])
+        read_name = alignment.query_name
         if alignment.is_unmapped:
             unmapped += 1
         else:
             # get the coordinate to which the read aligned
             observed = alignment.reference_start
-            if not (true_pos in true_to_observed):
-                true_to_observed[true_pos] = []
-            true_to_observed[true_pos].append(observed)
-            # print(true_pos, observed)
+            if not (read_name in true_to_observed):
+                true_to_observed[read_name] = []
+            true_to_observed[read_name].append(observed)
     samfile.close()
     # calculate all the metrics
     true_single = 0
@@ -92,7 +92,8 @@ def compute_basic_bwa_stats(in_path, out_path):
     multimapped_has_true = 0
     multimapped_no_true = 0
     margin = 2
-    for true_position, values in true_to_observed.items():
+    for read_name, values in true_to_observed.items():
+        true_position = int(read_name.split("_")[1])
         if len(values) == 1:
             if compare_true_observed_positions(true_position, values[0]):
                 true_single += 1

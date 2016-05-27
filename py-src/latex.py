@@ -47,12 +47,13 @@ def write_table(inputs, output_path):
 	with open(output_path, "w") as f_out:
 		write_table_header(f_out, "Dataset & \% on target & trueSingle & mismapped & multimapT & multimapF & unmapped".split(" & "))
 		for path in inputs:
+			method = path.split("/")[-2]
 			name = path.split("/")[-1].rstrip("_eval.txt")
 			name = name.replace("_", "\_")
 			vals = parse_eval(path)
 			values = (vals[:-1] / vals[-1] * 100.0).round(2)
 			f_out.write("\t{} & {} \\\\\n".format(name, " & ".join( map(str, values ) ) ) )
-		write_table_footer(f_out, "Performance on synthetic data w/o errors")
+		write_table_footer(f_out, "Performance on synthetic data w/o errors for \\textbf{" + method + "}")
 
 # write a table comparing mapping rates across the datasets and aligners
 def write_mapping_rate_table(inputs1, inputs2, output):

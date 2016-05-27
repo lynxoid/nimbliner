@@ -5,7 +5,7 @@
 # darya.filippova@gmail.com
 #
 
-# config: "experiments.json"
+configfile: "experiments.json"
 
 import sys
 sys.path.append("py-src")
@@ -17,6 +17,7 @@ Compile a pdf report
 rule compile_pdf_report:
 	input:
 		"plots/comparison_table.tex",
+		expand("plots/{method}_comparison_table.tex", method=config["methods"]),
 		"plots/main.tex"
 	output:
 		"plots/main.pdf"
@@ -24,16 +25,16 @@ rule compile_pdf_report:
 		"cd plots; pdflatex main"
 
 
-rule get_comparison_tables:
-	input:
-		expand("plots/{method}_comparison_table.tex", method=config["methods"])
+# rule get_comparison_tables:
+	# input:
+		# expand("plots/{method}_comparison_table.tex", method=config["methods"])
 
 """
 Make a comparison table
 """
 rule make_comparison_table:
 	input:
-		evals=expand("{work_dir}/{reference}/analysis/{method}}/sampled_{readlen}_{count}_eval.txt",
+		evals=expand("{work_dir}/{reference}/analysis/{{method}}/sampled_{readlen}_{count}_eval.txt",
 					zip,
 					work_dir=[config["work_dir"] for i in range(4)],
 					reference=[config["reference"] for i in range(4)],
