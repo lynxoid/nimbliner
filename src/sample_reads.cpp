@@ -44,7 +44,7 @@ int main(int argc, char * argv []) {
 		// get a random number in [0, |chr| - R] range
 		int start = dis(gen);
 		// r_out << ">" << i << endl << chr.substr(start, R) << endl;
-		cout << ">" << start << endl << chr.substr(start, R) << endl;
+		cout << ">" << i << "_" << start << endl << chr.substr(start, R) << endl;
 	}
 	// r_out.close();
 }

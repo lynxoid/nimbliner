@@ -3,5 +3,6 @@
 	"input_dir": 	"data/input",
 	"reference":	"hxb2",
 	"plots": 		"plots",
+	"methods":		["nimbliner", "bwa"],
 	"K":			20
 }

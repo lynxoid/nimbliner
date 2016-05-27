@@ -55,13 +55,18 @@ def write_table(inputs, output_path):
 		write_table_footer(f_out, "Performance on synthetic data w/o errors")
 
 # write a table comparing mapping rates across the datasets and aligners
-def write_mapping_rate_table(inputs, output):
+def write_mapping_rate_table(inputs1, inputs2, output):
 	f_out = open(output, "w")
-	write_table_header(f, ["Dataset", "Nimbaliner", "BWA"])
-	for path in inputs:
+	write_table_header(f_out, ["Dataset", "Nimbliner", "BWA"])
+	for i in range(len(inputs1)):
+		path = inputs1[i]
 		name = path.split("/")[-1]
 		# make latex happy about the underscores
 		name = name.replace("_", "\_")
-		# values = (vals[:-1] / vals[-1] * 100.0).round(2)
-		f_out.write("\t{} & {} \\\\\n".format(name, nimbaliner, bwa ) )
-	write_table_footer(f, "Another table, totally different")
+		vals1 = parse_eval(inputs1[i])
+		nimbaliner = round( vals1[0] / vals1[-1] * 100, 2)
+		vals2 = parse_eval(inputs2[i])
+		bwa = round( vals2[0] / vals2[-1] * 100, 2)
+		print(vals2, bwa)
+		f_out.write("\t{} & {} & {} \\\\\n".format(name, nimbaliner, bwa ) )
+	write_table_footer(f_out, "Another table, totally different")
