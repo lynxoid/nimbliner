@@ -1,0 +1,78 @@
+# download real data
+
+
+"""
+Run the sampling w/ mismatches (1% error rate)
+"""
+rule sample_reference_mismatches:
+	input:
+		ref=expand("{input}/{reference}.fa", input=config["input_dir"], reference=config["reference"]),
+		binary="bin/sample"
+	output:
+		"{work_dir}/{reference}/sampled/sampled_{R}_{N}_m={mm_rate}pct.fa"
+	log:
+		"{work_dir}/{reference}/log/sample_{R}_{N}_m={mm_rate}.log"
+	shell:
+		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} {wildcards.mm_rate} > {output} 2> {log};"
+
+
+
+"""
+Run the sampling w/o errors
+"""
+rule sample_reference_no_error:
+	input:
+		ref=expand("{input}/{reference}.fa", input=config["input_dir"], reference=config["reference"]),
+		binary="bin/sample"
+	output:
+		"{work_dir}/{reference}/sampled/sampled_{R,0-9+}_{N,0-9+}.fa"
+	log:
+		"{work_dir}/{reference}/log/sample_{R}_{N}.log"
+	shell:
+		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} > {output} 2> {log};"
+		# "ln -s {output} {wilcards.input}/sampled_{wildcards.R}_{wildcards.N}.fa"
+
+
+
+
+"""
+Compile if any of the input file have changed
+"""
+rule compile_sampler:
+	input:
+		"src/sample_reads.cpp",
+	output:
+		"bin/sample"
+	shell:
+		"rm -f {output}; make sample"
+
+
+
+
+"""
+Download PacBio lambda virus data
+"""
+rule download_pacbio_data:
+	output:
+		expand("data/input/pb/{sample}", sample=["ERR1424485"])
+	shell:
+		"fastq-dump --fastq --gzip {wildcards.sample};"
+		"mv {wildcards.sample}.fa.gz {output}"
+
+"""
+Download illumina NA128... WGS dataset
+"""
+rule download_illumina_wgs_data:
+	output:
+		expand("data/input/illumina/{sample}", sample=["ERR1423254"])
+	shell:
+		"fastq-dump --fasta --gzip {wildcards.sample};"
+		"mv {wildcards.sample}.fa.gz {output}"
+
+"""
+Download human chromosome (parametrized)
+"""
+rule download_human_chr:
+	params: "ftp:long_url."
+	shell:
+		"echo 'download human chr'"

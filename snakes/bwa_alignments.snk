@@ -1,0 +1,53 @@
+# run and evaluate bwa alignments
+
+
+
+"""
+"""
+rule evaluate_bwa_alignments:
+	input:
+		align="{work_dir}/{reference}/alignments/bwa/{dataset}.bam",
+		script="py-src/stats.py"
+	output:
+		"{work_dir}/{reference}/analysis/bwa/{dataset}_eval.txt"
+	run:
+		import stats
+		stats.compute_basic_bwa_stats(input.align, output[0])
+
+
+"""
+Align reads using bwa mem
+"""
+rule align_reads_bwa:
+	input:
+		index="{work_dir}/{reference}/index/bwa/{reference}.ann",
+		reads="{work_dir}/{reference}/sampled/{dataset}.fa"
+	params:
+		index="{work_dir}/{reference}/index/bwa/{reference}",
+	output:
+		"{work_dir}/{reference}/alignments/bwa/{dataset}.bam"
+	log:
+		"{work_dir}/{reference}/log/bwa/align_{dataset}.log"
+	params: K=config["K"]
+	shell:
+		"/usr/bin/time -lp bwa mem {params.index} {input.reads} 2> {log} | samtools view -Sb - > {output} "
+
+
+"""
+Build index for bwa
+"""
+rule build_bwa_index:
+	input:
+		ref=expand("{input}/{reference}.fa", 
+						input=config["input_dir"], 
+						reference=config["reference"]),
+	params:
+		dir="{work_dir}/{reference}/index/bwa/{reference}",
+	output:
+		"{work_dir}/{reference}/index/bwa/{reference}.amb",
+		"{work_dir}/{reference}/index/bwa/{reference}.ann",
+		"{work_dir}/{reference}/index/bwa/{reference}.bwt",
+		"{work_dir}/{reference}/index/bwa/{reference}.pac",
+		"{work_dir}/{reference}/index/bwa/{reference}.sa"
+	shell:
+		"bwa index -p {params.dir} {input.ref}"

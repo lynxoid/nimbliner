@@ -7,6 +7,9 @@
 
 configfile: "experiments.json"
 
+include: "snakes/data.snk"
+include: "snakes/bwa_alignments.snk"
+
 import sys
 sys.path.append("py-src")
 
@@ -16,14 +19,29 @@ Compile a pdf report
 """
 rule compile_pdf_report:
 	input:
-		"plots/comparison_table.tex",
-		expand("plots/{method}_comparison_table.tex", method=config["methods"]),
+		expand("{work_dir}/plots/comparison_table.tex", work_dir=config["work_dir"]),
+		expand("{work_dir}/plots/{method}_comparison_table.tex", 
+			work_dir=config["work_dir"], method=config["methods"]),
+		expand("{work_dir}/plots/{method}_comparison_table_mismatches.tex",
+			work_dir=config["work_dir"], method=config["methods"]),
+		expand("{work_dir}/plots/main.tex", work_dir=config["work_dir"])
+	params:
+		work_dir=config["work_dir"]
+	output:
+		expand("{work_dir}/plots/main.pdf", work_dir=config["work_dir"])
+	shell:
+		"cd {params.work_dir}/plots; pdflatex main; echo {output}"
+
+
+"""
+"""
+rule get_text_template_for_main:
+	input:
 		"plots/main.tex"
 	output:
-		"plots/main.pdf"
+		"{work_dir}/plots/main.tex"
 	shell:
-		"cd plots; pdflatex main"
-
+		"cp {input} {output}"
 
 # rule get_comparison_tables:
 	# input:
@@ -43,7 +61,7 @@ rule make_comparison_table:
 					),
 		script="py-src/latex.py"
 	output:
-		"plots/{method}_comparison_table.tex"
+		"{work_dir}/plots/{method}_comparison_table.tex"
 	run:
 		import latex
 		latex.write_table(input.evals, output[0])
@@ -70,15 +88,36 @@ rule make_mapping_rate_table:
 					),
 		script="py-src/latex.py"
 	output:
-		"plots/comparison_table.tex"
+		"{work_dir}/plots/comparison_table.tex"
 	run:
 		import latex
 		latex.write_mapping_rate_table(input.nimble_data, input.bwa_data, output[0])
 
 
 """
+Make a comparison table for reads w/ mismatches
 """
-rule evaluate_alignment:
+rule make_comparison_table_mismatches:
+	input:
+		evals=expand("{work_dir}/{reference}/analysis/{{method}}/sampled_{readlen}_{count}_m={mm_rate}pct_eval.txt",
+					zip,
+					work_dir=[config["work_dir"] for i in range(4)],
+					reference=[config["reference"] for i in range(4)],
+					readlen=[100, 100, 100],
+					count=[1000, 1000, 1000],
+					mm_rate=[0.5, 1, 2]
+					),
+		script="py-src/latex.py"
+	output:
+		"{work_dir}/plots/{method}_comparison_table_mismatches.tex"
+	run:
+		import latex
+		latex.write_table(input.evals, output[0])
+
+
+"""
+"""
+rule evaluate_nimbliner_alignment:
 	input:
 		align="{work_dir}/{reference}/alignments/nimbliner/{dataset}.aligned",
 		script="py-src/stats.py"
@@ -87,6 +126,24 @@ rule evaluate_alignment:
 	run:
 		import stats
 		stats.compute_basic_stats(input.align, output[0])
+
+
+# """
+# Align 1 read w/ error to the reference using the index; log the performance
+# """
+# rule run_read_with1error:
+# 	input:
+# 		index="{work_dir}/{reference}/index/{reference}.index",
+# 		stars="{work_dir}/{reference}/index/{reference}.star",
+# 		reads="data/input/test_read_1_error.fa",
+# 		binary="bin/mapper"
+# 	output:
+# 		"{work_dir}/{reference}/alignments/nimbliner/test_read_1_error.aligned"
+# 	log:
+# 		"{work_dir}/{reference}/log/align_test_read1error.log"
+# 	params: K=config["K"]
+# 	shell:
+# 		"/usr/bin/time -lp ./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output} 2> {log}"
 
 
 """
@@ -108,7 +165,7 @@ rule align_reads:
 
 
 """
-Run the tool to build an index
+Run the tool to build an index of the reference sequence
 """
 rule build_index:
 	input:
@@ -131,56 +188,6 @@ rule build_index:
 
 
 """
-"""
-rule evaluate_bwa_alignments:
-	input:
-		align="{work_dir}/{reference}/alignments/bwa/{dataset}.bam",
-		script="py-src/stats.py"
-	output:
-		"{work_dir}/{reference}/analysis/bwa/{dataset}_eval.txt"
-	run:
-		import stats
-		stats.compute_basic_bwa_stats(input.align, output[0])
-
-
-"""
-Align reads using bwa mem
-"""
-rule align_reads_bwa:
-	input:
-		index="{work_dir}/{reference}/index/bwa/{reference}.ann",
-		reads="{work_dir}/{reference}/sampled/{dataset}.fa"
-	params:
-		index="{work_dir}/{reference}/index/bwa/{reference}",
-	output:
-		"{work_dir}/{reference}/alignments/bwa/{dataset}.bam"
-	log:
-		"{work_dir}/{reference}/log/bwa/align_{dataset}.log"
-	params: K=config["K"]
-	shell:
-		"/usr/bin/time -lp bwa mem {params.index} {input.reads} 2> {log} | samtools view -Sb - > {output} "
-
-"""
-Build index for bwa
-"""
-rule build_bwa_index:
-	input:
-		ref=expand("{input}/{reference}.fa", 
-						input=config["input_dir"], 
-						reference=config["reference"]),
-	params:
-		dir="{work_dir}/{reference}/index/bwa/{reference}",
-	output:
-		"{work_dir}/{reference}/index/bwa/{reference}.amb",
-		"{work_dir}/{reference}/index/bwa/{reference}.ann",
-		"{work_dir}/{reference}/index/bwa/{reference}.bwt",
-		"{work_dir}/{reference}/index/bwa/{reference}.pac",
-		"{work_dir}/{reference}/index/bwa/{reference}.sa"
-	shell:
-		"bwa index -p {params.dir} {input.ref}"
-
-
-"""
 Compile if any of the input file have changed
 """
 rule compile_aligner:
@@ -192,62 +199,3 @@ rule compile_aligner:
 		"bin/mapper"
 	shell:
 		"rm -f {output}; make mapper"
-
-
-
-"""
-Run the sampling w/o errors
-"""
-rule sample_reference_no_error:
-	input:
-		ref=expand("{input}/{reference}.fa", 
-					input=config["input_dir"], 
-					reference=config["reference"]),
-		binary="bin/sample"
-	output:
-		"{work_dir}/{reference}/sampled/sampled_{R}_{N}.fa"
-	log:
-		"{work_dir}/{reference}/log/sample_{R}_{N}.log"
-	shell:
-		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} > {output} 2> {log};"
-		# "ln -s {output} {wilcards.input}/sampled_{wildcards.R}_{wildcards.N}.fa"
-
-
-
-
-"""
-Compile if any of the input file have changed
-"""
-rule compile_sampler:
-	input:
-		"src/sample_reads.cpp",
-	output:
-		"bin/sample"
-	shell:
-		"rm -f {output}; make sample"
-
-
-"""
-Download PacBio lambda virus data
-"""
-rule download_pacbio_data:
-	output:
-	shell:
-		"echo 'Download pacbio data'"
-
-"""
-Download illumina NA128... WGS dataset
-"""
-rule download_illumina_wgs_data:
-	output:
-		expand("")
-	shell:
-		"touch {output}"
-
-"""
-Download human chromosome (parametrized)
-"""
-rule download_human_chr:
-	params: "ftp:long_url."
-	shell:
-		"echo 'download human chr'"
