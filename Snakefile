@@ -23,9 +23,9 @@ Compile a pdf report
 """
 rule compile_pdf_report:
 	input:
-		# expand("{work_dir}/plots/comparison_table.tex", work_dir=config["work_dir"]),
-		# expand("{work_dir}/plots/{method}_comparison_table.tex", 
-		# 	work_dir=config["work_dir"], method=config["methods"]),
+		expand("{work_dir}/plots/comparison_table.tex", work_dir=config["work_dir"]),
+		expand("{work_dir}/plots/{method}_comparison_table.tex", 
+			work_dir=config["work_dir"], method=config["methods"]),
 		expand("{work_dir}/plots/{method}_comparison_table_mismatches.tex",
 			work_dir=config["work_dir"], method=config["methods"]),
 		expand("{work_dir}/plots/main.tex", work_dir=config["work_dir"])
@@ -47,9 +47,6 @@ rule get_text_template_for_main:
 	shell:
 		"cp {input} {output}"
 
-# rule get_comparison_tables:
-	# input:
-		# expand("plots/{method}_comparison_table.tex", method=config["methods"])
 
 """
 Make a comparison table
@@ -130,24 +127,6 @@ rule evaluate_nimbliner_alignment:
 	run:
 		import stats
 		stats.compute_basic_stats(input.align, output[0])
-
-
-# """
-# Align 1 read w/ error to the reference using the index; log the performance
-# """
-# rule run_read_with1error:
-# 	input:
-# 		index="{work_dir}/{reference}/index/{reference}.index",
-# 		stars="{work_dir}/{reference}/index/{reference}.star",
-# 		reads="data/input/test_read_1_error.fa",
-# 		binary="bin/mapper"
-# 	output:
-# 		"{work_dir}/{reference}/alignments/nimbliner/test_read_1_error.aligned"
-# 	log:
-# 		"{work_dir}/{reference}/log/align_test_read1error.log"
-# 	params: K=config["K"]
-# 	shell:
-# 		"/usr/bin/time -lp ./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output} 2> {log}"
 
 
 """

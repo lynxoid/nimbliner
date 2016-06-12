@@ -17,7 +17,7 @@
 
 using namespace std;
 
-typedef uint genomic_coordinate_t;
+typedef int genomic_coordinate_t;
 
 class ReferenceIndex {
 

@@ -17,24 +17,39 @@ class Aligner {
 
     /*
      */
-	vector<int> findAllMatchingAnchorPositions(const vector<pair<kmer_t,uint>> & matched_stars, 
+	vector<genomic_coordinate_t> findAllMatchingAnchorPositions(const vector<pair<kmer_t,int>> & matched_stars, 
 		const ReferenceIndex & index) {
 		assert(matched_stars.size() > 0);
 
-		vector<int> mappings;
+        cerr << "(";
+        for (auto & star : matched_stars)
+            cerr << star.second << " ";
+        cerr << ") ";
+
+		vector<genomic_coordinate_t> mappings;
 		auto first_star = matched_stars[0];
 		auto second_star = matched_stars[1];
+        // TODO: why +1 here? are matched_stars locations incorrect?
 		int delta = second_star.second - first_star.second;
+        cerr << "delta=" << delta << " ";
+        // if (delta < 0)
 
+        // locations are sorted in increasing order
 		auto A = index.get_anchor_locations(first_star.first);
+        cerr << "As ";
+        for (auto loc : A) cerr << loc << " ";
+
 		auto B = index.get_anchor_locations(second_star.first);
-		// auto A = star_locations[first_star.first];
-		// auto B = star_locations[second_star.first];
+        cerr << "Bs ";
+        for (auto loc : B) cerr << loc << " ";
 		int i = 0, j = 0;
 		while (i < A.size() && j < B.size() ) {
 			if (A[i] < B[j]) {
 				if (B[j] - A[i] == delta) {
-					// found one match
+					// found a match
+                    if (A[i] < first_star.second) {
+                        cerr << "ERR:" << A[i] << " " << first_star.second << " " << second_star.second << endl;
+                    }
 					mappings.push_back(A[i] - first_star.second);
 					i++;
 					j++;
@@ -50,6 +65,7 @@ class Aligner {
 				j++;
 			}
 		}
+        cerr << " | " << mappings.size() << " ";
 		return mappings;
 	}
 
@@ -61,22 +77,25 @@ class Aligner {
 	//	--***-***-
 	//
 	////////////////////////////////////////////////////////
-	vector<int> resolve_mapping_locations(const vector<pair<kmer_t,uint>> & matched_stars, 
+	vector<genomic_coordinate_t> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars, 
 		// unordered_map<kmer_t, vector<int>> & star_locations,
-		int & extend) {
-		vector<int> mappings;
+		int & extend,
+        const int K) {
+		vector<genomic_coordinate_t> mappings;
 
 		// what if no stars mapped?
 		if (matched_stars.size() == 0) {
 			// need to extend the read until we hit some star
 			extend++;
+            cerr << endl;
 		}
 		if (matched_stars.size() == 1) {
 			// that's the only thing we got going
 			// TODO: extend to find more stars
 			auto reference_locations = _index.get_anchor_locations(matched_stars[0].first);
 			for (auto loc : reference_locations) {
-				mappings.push_back(loc - matched_stars[0].second);
+                // TODO: why -1? is matched_stars location incorrect?
+				mappings.push_back(loc - matched_stars[0].second - 1);
                 cerr << mappings.back() << endl;
             }
 		}
@@ -85,6 +104,7 @@ class Aligner {
 			// TODO: take into account all the stars
 
 			mappings = findAllMatchingAnchorPositions(matched_stars, _index);
+            for (auto & m : mappings) m--;
             for (auto p : mappings) cerr << p << " ";
             cerr << endl;
 		}
@@ -99,18 +119,18 @@ class Aligner {
 		kmer_t mask = ( ((kmer_t)1) << ( 2*(K-1) ) ) - 1;
         bin_kmer = (bin_kmer & mask) << 2;
         // append a new char on the right
-        bin_kmer = bin_kmer | dna_codes[ (size_t) next_base ];
+        bin_kmer = bin_kmer | (kmer_t)dna_codes[ next_base ];
 	}
 
     /*
      *
      */
-    vector<pair<kmer_t, uint>> find_anchors(const kseq_t * seq, const short K) {
-        vector<pair<kmer_t, uint>> matched_stars;
+    vector<pair<kmer_t, int>> find_anchors(const kseq_t * seq, const short K) {
+        vector<pair<kmer_t, int>> matched_stars;
         int L = seq->seq.l - K + 1;
         // only allow reads shorter than 2^16
         assert(L < 65536);
-        vector<bool> matched_kmers;
+        // vector<bool> matched_kmers;
 
         auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
         // should deal w/ ends separately -- may need to trim or skip low-quality ends
@@ -122,15 +142,17 @@ class Aligner {
             matched_kmers.push_back(0);
         */
 
+        int i = 0;
         if ( _index.has_anchor(bin_kmer) ) {
-                matched_stars.emplace_back(bin_kmer, 0);
+            matched_stars.emplace_back(bin_kmer, i);
         }
 
         // now go through the rest of the read
-        unsigned short i = 1;
+        // i++;
         while (i < L) {
             // update prev kmer // mask the leftmost character
-            get_next_kmer(bin_kmer, seq->seq.s[i], K);
+            get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
+
             
             /*
             if (_index.has_kmer(bin_kmer) ) {
@@ -146,10 +168,8 @@ class Aligner {
             */
 
             if ( _index.has_anchor(bin_kmer) ) {
-                matched_stars.emplace_back(bin_kmer, i);
-            }
-            else {
-                // TODO
+                // TODO: why a + 1 here?
+                matched_stars.emplace_back(bin_kmer, i + 1);
             }
             i++;
         }
@@ -184,20 +204,20 @@ public:
 	        	continue;
 	        }
 
-            vector<pair<kmer_t, uint>> matched_stars = find_anchors(seq, K);
+            vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K);
 	        // DEBUG info
 	        cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
 			
 			// resolve star kmers to get an exact mapping location
             auto start = std::chrono::system_clock::now();
-			auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read);
+			auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
             auto end = std::chrono::system_clock::now();
 
 			// output all potential locations for this read
             // TODO: generate CIGAR strings and all
 			cout << seq->name.s << "\t";
 			for (const auto & loc : mapping_locations) {
-				cout << loc + K - 1 << " ";
+				cout << loc << " ";
 			}
 			cout << endl;
 			
