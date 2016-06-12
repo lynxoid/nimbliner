@@ -69,10 +69,18 @@ rule download_illumina_wgs_data:
 		"fastq-dump --fasta --gzip {wildcards.sample};"
 		"mv {wildcards.sample}.fa.gz {output}"
 
+
+rule download_all_human_chromos:
+	input:
+		expand("/Users/lynxoid/data/reference/human/GRCh38/chr{chromo}.fna.gz", chromo = list(range(1, 22)) + ["X", "Y"])
+
 """
 Download human chromosome (parametrized)
 """
 rule download_human_chr:
-	params: "ftp:long_url."
+	params: 
+		url="ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr"
+	output:
+		"/Users/lynxoid/data/reference/human/GRCh38/chr{chromo}.fna.gz"
 	shell:
-		"echo 'download human chr'"
+		"wget {params.url}{wildcards.chromo}.fna.gz; mv chr{wildcards.chromo}.fna.gz {output}"

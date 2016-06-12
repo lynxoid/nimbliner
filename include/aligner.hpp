@@ -86,6 +86,13 @@ class Aligner {
 		return mappings;
 	}
 
+	void get_next_kmer(kmer_t & bin_kmer, const char next_base, const int K) {
+		kmer_t mask = ( ((kmer_t)1) << ( 2*(K-1) ) ) - 1;
+        bin_kmer = (bin_kmer & mask) << 2;
+        // append a new char on the right
+        bin_kmer = bin_kmer | dna_codes[ (size_t) seq->seq.s[i] ];
+	}
+
 public:
 
 	Aligner(const ReferenceIndex & index) {
@@ -106,17 +113,14 @@ public:
 	    while ( (seq = fr.nextSequence() ) ) {
 	    	read_count++;
 	    	if (read_count % 100000 == 0) cerr << read_count / 100000 << "00K ";
-	    	// cerr << seq->seq.l << " " << K << endl;
 	        if (seq->seq.l < K) {
 	        	continue;
 	        }
-	        // stream through BF
 	        vector<pair<kmer_t,int>> matched_stars;
-	        float cnt_matched = 0.0f;
+	        int cnt_matched = 0;
 	        int L = seq->seq.l - K + 1;
 	        // only allow reads shorter than 2^16
 	        assert(L < 65536);
-	        // int true_pos = stoi(seq->name.s);
 	        auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
 	        //if (bf.contains(bin_kmer) ) {
 	        //        cnt_matched++;
@@ -127,32 +131,30 @@ public:
 	        // now go through the rest of the read
 	        unsigned short i = 1;
 	        while (i < L) {
-	                // update prev kmer
-	                // mask the leftmost character
-	                kmer_t mask = ( ((kmer_t)1) << ( 2*(K-1) ) ) - 1;
-	                bin_kmer = (bin_kmer & mask) << 2;
-	                // append a new char on the right
-	                bin_kmer = bin_kmer | dna_codes[ (size_t) seq->seq.s[i] ];
-	                // print for debug
-	                // unsigned short j = 0;
-	                // while (j < i) {cerr << " "; j++;}
-	                // cerr << mer_binary_to_string(bin_kmer, K) << endl;
-	                //if (bf.contains(bin_kmer) ) {
-	                //        cnt_matched++;
-	                        // check if hit a star kmer
-	                        if ( _index.has_anchor(bin_kmer) )
-	                                matched_stars.emplace_back(bin_kmer, i - K + 1);
-	                        // if (matched_stars.size() >= 2) break;
-	                //}
-	                i++;
+                // update prev kmer // mask the leftmost character
+        		get_next_kmer(bin_kmer, seq->seq.s[i], K);
+                
+                if (bf.contains(bin_kmer) ) {
+                    cnt_matched++;
+                    // check if hit a star kmer
+                    if ( _index.has_anchor(bin_kmer) )
+                            matched_stars.emplace_back(bin_kmer, i - K + 1);
+                    // if (matched_stars.size() >= 2) break;
+                }
+                else {
+                	// mismatch? indel?
+                	// was prev kmer there?
+                	// is next kmer there too?
+                }
+                i++;
 	        }
 	        // require at least 50% of all kmers to match
 	        // if (cnt_matched / L < 0.45) continue;
 	        // passed_cutoff++;
-			// resolve star kmers to get an exact mapping location
 			cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << endl;
 			auto start = std::chrono::system_clock::now();
 
+			// resolve star kmers to get an exact mapping location
 			auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read);
 
 			// output all potential locations for this read

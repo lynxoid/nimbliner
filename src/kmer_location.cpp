@@ -73,6 +73,7 @@ int main(int argc, char * argv []) {
 
 		auto start = std::chrono::system_clock::now();
 		Aligner aligner(index);
+		// TODO: separate sequence reads and aligner -- make aligner pull things off the queue
 		aligner.alignReads(path, K);
 	    auto end = std::chrono::system_clock::now();
 	    std::chrono::duration<double> elapsed_seconds = end - start;
