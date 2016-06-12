@@ -24,7 +24,7 @@ class ReferenceIndex {
 
 	// anchor locations (stars)
 	// TODO: how to choose these intelligently
-	shared_ptr<unordered_map<kmer_t, vector<int>>> _stars;
+	shared_ptr<unordered_map<kmer_t, vector<uint>>> _stars;
 
 	// read kmers describing the reference from the file
 	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & path, int K) {
@@ -109,12 +109,12 @@ class ReferenceIndex {
 	}
 
 	// read kmers that serve as anchors
-	shared_ptr<unordered_map<kmer_t, vector<int>>> readStarLocations(const string & path, int K) {
+	shared_ptr<unordered_map<kmer_t, vector<uint>>> readStarLocations(const string & path, const int K) {
 		cerr << "reading stars from " << path << endl;
 		auto start = std::chrono::system_clock::now();
 
-		shared_ptr<unordered_map<kmer_t, vector<int>>> kmer_locations = 
-			shared_ptr<unordered_map<kmer_t, vector<int>>>(new unordered_map<kmer_t, vector<int>>());
+		shared_ptr<unordered_map<kmer_t, vector<uint>>> kmer_locations = 
+			shared_ptr<unordered_map<kmer_t, vector<uint>>>(new unordered_map<kmer_t, vector<uint>>());
 		ifstream in(path);
 		string line;
 		while (getline(in, line)) {
@@ -123,9 +123,9 @@ class ReferenceIndex {
 			string kmer, pos;
 			getline(ss, kmer, ' ');
 			uint64_t bin_kmer = stol(kmer);
-			kmer_locations->emplace(bin_kmer, vector<int>{});
+			kmer_locations->emplace(bin_kmer, vector<uint>{});
 			while(getline(ss, pos, ' ')) {
-	    		int location = stoi(pos);
+	    		uint location = stoul(pos);
 	    		(*kmer_locations)[bin_kmer].push_back(location);
 			}
 			if ((*kmer_locations)[bin_kmer].size() > 10000) {
@@ -137,7 +137,7 @@ class ReferenceIndex {
 
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
-		cerr << "reading stars took: " << elapsed_seconds.count() << "s" << endl;
+		cerr << "reading anchors took: " << elapsed_seconds.count() << "s" << endl;
 
 		return kmer_locations;
 	}
@@ -202,12 +202,16 @@ public:
 		return;
 	}
 
+	bool has_kmer(const kmer_t & kmer) const {
+		return _bf->contains(kmer);
+	}
+
 	bool has_anchor(const kmer_t & kmer) const {
 		return _stars->find(kmer) != _stars->end();
 	}
 
 	// TODO: what does this & do?
-	vector<int> & get_anchor_locations(const kmer_t & kmer) const {
+	vector<uint> & get_anchor_locations(const kmer_t & kmer) const {
 		return (*_stars)[kmer];
 	}
 };

@@ -14,6 +14,10 @@ import sys
 sys.path.append("py-src")
 
 
+small_set = {}
+
+big_set = {}
+
 """
 Compile a pdf report
 """
