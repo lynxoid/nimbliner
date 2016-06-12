@@ -21,27 +21,27 @@ class Aligner {
 		const ReferenceIndex & index) {
 		assert(matched_stars.size() > 0);
 
-        cerr << "(";
-        for (auto & star : matched_stars)
-            cerr << star.second << " ";
-        cerr << ") ";
+        // cerr << "(";
+        // for (auto & star : matched_stars)
+        //     cerr << star.second << " ";
+        // cerr << ") ";
 
 		vector<genomic_coordinate_t> mappings;
 		auto first_star = matched_stars[0];
 		auto second_star = matched_stars[1];
         // TODO: why +1 here? are matched_stars locations incorrect?
 		int delta = second_star.second - first_star.second;
-        cerr << "delta=" << delta << " ";
+        // cerr << "delta=" << delta << " ";
         // if (delta < 0)
 
         // locations are sorted in increasing order
 		auto A = index.get_anchor_locations(first_star.first);
-        cerr << "As ";
-        for (auto loc : A) cerr << loc << " ";
+        // cerr << "As ";
+        // for (auto loc : A) cerr << loc << " ";
 
 		auto B = index.get_anchor_locations(second_star.first);
-        cerr << "Bs ";
-        for (auto loc : B) cerr << loc << " ";
+        // cerr << "Bs ";
+        // for (auto loc : B) cerr << loc << " ";
 		int i = 0, j = 0;
 		while (i < A.size() && j < B.size() ) {
 			if (A[i] < B[j]) {
@@ -65,7 +65,7 @@ class Aligner {
 				j++;
 			}
 		}
-        cerr << " | " << mappings.size() << " ";
+        // cerr << " | " << mappings.size() << " ";
 		return mappings;
 	}
 
@@ -95,15 +95,15 @@ class Aligner {
 			auto reference_locations = _index.get_anchor_locations(matched_stars[0].first);
 			for (auto loc : reference_locations) {
                 mappings.push_back(loc - matched_stars[0].second);
-                cerr << mappings.back() << endl;
+                // cerr << mappings.back() << endl;
             }
 		}
 		else if (matched_stars.size() >= 2) {
 			// if two stars	or more
 			// TODO: take into account all the stars
 			mappings = findAllMatchingAnchorPositions(matched_stars, _index);
-            for (auto p : mappings) cerr << p << " ";
-            cerr << endl;
+            // for (auto p : mappings) cerr << p << " ";
+            // cerr << endl;
 		}
 
 		return mappings;
@@ -208,6 +208,7 @@ public:
             auto start = std::chrono::system_clock::now();
 			auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
             auto end = std::chrono::system_clock::now();
+            cerr << endl;
 
 			// output all potential locations for this read
             // TODO: generate CIGAR strings and all
