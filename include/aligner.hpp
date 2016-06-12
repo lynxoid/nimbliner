@@ -94,17 +94,14 @@ class Aligner {
 			// TODO: extend to find more stars
 			auto reference_locations = _index.get_anchor_locations(matched_stars[0].first);
 			for (auto loc : reference_locations) {
-                // TODO: why -1? is matched_stars location incorrect?
-				mappings.push_back(loc - matched_stars[0].second - 1);
+                mappings.push_back(loc - matched_stars[0].second);
                 cerr << mappings.back() << endl;
             }
 		}
 		else if (matched_stars.size() >= 2) {
 			// if two stars	or more
 			// TODO: take into account all the stars
-
 			mappings = findAllMatchingAnchorPositions(matched_stars, _index);
-            for (auto & m : mappings) m--;
             for (auto p : mappings) cerr << p << " ";
             cerr << endl;
 		}
@@ -148,7 +145,6 @@ class Aligner {
         }
 
         // now go through the rest of the read
-        // i++;
         while (i < L) {
             // update prev kmer // mask the leftmost character
             get_next_kmer(bin_kmer, seq->seq.s[i + K], K);

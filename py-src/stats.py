@@ -17,10 +17,10 @@ def write_eval_file(path, true_single, mismapped, unmapped, multimapped_no_true,
 
 
 def compare_true_observed_positions(true, observed, margin=2):
-    return abs(true - observed) < 2
+    return abs(true - observed) < margin
 
 
-def compute_basic_stats(in_path, out_path):
+def compute_basic_stats(in_path, out_path, margin=3):
     # with open(out_path, "w") as f_out:
     true_single = 0
     mismapped = 0
@@ -39,7 +39,7 @@ def compute_basic_stats(in_path, out_path):
             observed_locations = parts[1]
             observed_locations = list(map(int,observed_locations.split(" ") ) )
             if len(observed_locations) == 1:
-                if compare_true_observed_positions(true_location, observed_locations[0]):
+                if compare_true_observed_positions(true_location, observed_locations[0], margin):
                     true_single += 1
                 else:
                     f_mismapped.write("{}\n".format(true_location))
@@ -49,7 +49,7 @@ def compute_basic_stats(in_path, out_path):
             else:
                 has_true = False
                 for obs in observed_locations:
-                    if compare_true_observed_positions(obs, true_location):
+                    if compare_true_observed_positions(obs, true_location, margin):
                         has_true = True
                         break
                 if has_true: multimapped_has_true += 1
@@ -68,7 +68,7 @@ def compute_basic_stats(in_path, out_path):
 """
 Compute % aligned, aligned uniquely, unmapped, etc for BWA
 """
-def compute_basic_bwa_stats(in_path, out_path):
+def compute_basic_bwa_stats(in_path, out_path, margin=3):
     f_mismapped = open(out_path + ".mismapped", "w")
     # parse the BAM file and count stuff
     samfile = pysam.AlignmentFile(in_path, "rb", check_header=False, check_sq=False)
@@ -95,7 +95,7 @@ def compute_basic_bwa_stats(in_path, out_path):
     for read_name, values in true_to_observed.items():
         true_position = int(read_name.split("_")[1])
         if len(values) == 1:
-            if compare_true_observed_positions(true_position, values[0]):
+            if compare_true_observed_positions(true_position, values[0], margin):
                 true_single += 1
             else:
                 mismapped += 1
@@ -104,7 +104,7 @@ def compute_basic_bwa_stats(in_path, out_path):
             # if true_position in values:
             found = False
             for v in values:
-                if compare_true_observed_positions(true_position, v): 
+                if compare_true_observed_positions(true_position, v, margin):
                     found = True
             if found:
                 multimapped_has_true += 1
