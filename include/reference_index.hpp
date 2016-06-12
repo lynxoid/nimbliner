@@ -17,6 +17,8 @@
 
 using namespace std;
 
+typedef uint genomic_coordinate_t;
+
 class ReferenceIndex {
 
 	// probabilistic dBG -- holds the dBG of the reference
@@ -24,7 +26,7 @@ class ReferenceIndex {
 
 	// anchor locations (stars)
 	// TODO: how to choose these intelligently
-	shared_ptr<unordered_map<kmer_t, vector<uint>>> _stars;
+	shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _stars;
 
 	// read kmers describing the reference from the file
 	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & path, int K) {
@@ -109,12 +111,12 @@ class ReferenceIndex {
 	}
 
 	// read kmers that serve as anchors
-	shared_ptr<unordered_map<kmer_t, vector<uint>>> readStarLocations(const string & path, const int K) {
+	shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> readStarLocations(const string & path, const int K) {
 		cerr << "reading stars from " << path << endl;
 		auto start = std::chrono::system_clock::now();
 
-		shared_ptr<unordered_map<kmer_t, vector<uint>>> kmer_locations = 
-			shared_ptr<unordered_map<kmer_t, vector<uint>>>(new unordered_map<kmer_t, vector<uint>>());
+		shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> kmer_locations = 
+			shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>>(new unordered_map<kmer_t, vector<genomic_coordinate_t>>());
 		ifstream in(path);
 		string line;
 		while (getline(in, line)) {
@@ -123,9 +125,10 @@ class ReferenceIndex {
 			string kmer, pos;
 			getline(ss, kmer, ' ');
 			uint64_t bin_kmer = stol(kmer);
-			kmer_locations->emplace(bin_kmer, vector<uint>{});
+			kmer_locations->emplace(bin_kmer, vector<genomic_coordinate_t>{});
 			while(getline(ss, pos, ' ')) {
-	    		uint location = stoul(pos);
+	    		// int location = stoul(pos);
+	    		int location = stoi(pos);
 	    		(*kmer_locations)[bin_kmer].push_back(location);
 			}
 			if ((*kmer_locations)[bin_kmer].size() > 10000) {
@@ -158,17 +161,17 @@ public:
 	void buildIndex(const string & ref_path, int K) {
 		auto chromosomes = parseFasta(ref_path);
 		// count kmers, record their locations
-		unordered_map<kmer_t, vector<int>> kmer_locations;
+		unordered_map<kmer_t, vector<genomic_coordinate_t>> kmer_locations;
 
 		unordered_set<kmer_t> star_kmers;
 		assert(chromosomes.size() > 0);
 		auto chr = chromosomes[0];
 
 		int c = 0;
-		for (int i = 0; i < chr.size() - K + 1; i++) {
+		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
 			kmer_t kmer = mer_string_to_binary(&chr[i], K);
 			if ( kmer_locations.find(kmer) == kmer_locations.end() ) {
-				kmer_locations.emplace(kmer, vector<int>{i});
+				kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
 			}
 			else {
 				 // can delta encode here and fit into less space technically
@@ -211,7 +214,7 @@ public:
 	}
 
 	// TODO: what does this & do?
-	vector<uint> & get_anchor_locations(const kmer_t & kmer) const {
+	vector<genomic_coordinate_t> & get_anchor_locations(const kmer_t & kmer) const {
 		return (*_stars)[kmer];
 	}
 };

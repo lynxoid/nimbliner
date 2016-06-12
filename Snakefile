@@ -23,9 +23,9 @@ Compile a pdf report
 """
 rule compile_pdf_report:
 	input:
-		expand("{work_dir}/plots/comparison_table.tex", work_dir=config["work_dir"]),
-		expand("{work_dir}/plots/{method}_comparison_table.tex", 
-			work_dir=config["work_dir"], method=config["methods"]),
+		# expand("{work_dir}/plots/comparison_table.tex", work_dir=config["work_dir"]),
+		# expand("{work_dir}/plots/{method}_comparison_table.tex", 
+		# 	work_dir=config["work_dir"], method=config["methods"]),
 		expand("{work_dir}/plots/{method}_comparison_table_mismatches.tex",
 			work_dir=config["work_dir"], method=config["methods"]),
 		expand("{work_dir}/plots/main.tex", work_dir=config["work_dir"])
