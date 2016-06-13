@@ -67,8 +67,12 @@ int main(int argc, char * argv []) {
 	int N = stoi(argv[2]);
 	// reference sequence to sample from
 	auto chromosomes = parseFasta(argv[3]);
-	// mismatch rate [0;1]
-	float mismatch_rate = stof(argv[4]) / 100.0f;
+
+	float mismatch_rate = 0;
+	if (argc > 4) {
+		// mismatch rate [0;100], float
+		mismatch_rate = stof(argv[4]) / 100.0f;
+	}
 
 	assert(chromosomes.size() > 0);
 	// assert(mismatch_rate < 1.0f);
@@ -83,12 +87,17 @@ int main(int argc, char * argv []) {
 		int start = distro(gen);
 		string read = chr.substr(start, R);
 		// cerr << "get read" << endl;
-		auto modified_bases = add_mismatches(read, mismatch_rate);
+		
 		// write to stdout
 		cout << ">" << i << "_" << start;
-		// write out modified bases
-		for (auto const & b : modified_bases)
-			cout << "_" << b;
+
+		if (mismatch_rate > 0) {
+			// modify the read and save locations of errors (write as a read name)
+			auto modified_bases = add_mismatches(read, mismatch_rate);
+			// write out modified bases
+			for (auto const & b : modified_bases)
+				cout << "_" << b;
+		}
 		cout << endl << read << endl;
 	}
 	// r_out.close();

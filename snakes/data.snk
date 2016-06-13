@@ -25,11 +25,12 @@ rule sample_reference_no_error:
 		ref=expand("{input}/{reference}.fa", input=config["input_dir"], reference=config["reference"]),
 		binary="bin/sample"
 	output:
-		"{work_dir}/{reference}/sampled/sampled_{R,0-9+}_{N,0-9+}.fa"
+		"{work_dir}/{reference}/sampled/sampled_{R,[0-9]+}_{N,[0-9]+}.fa"
 	log:
 		"{work_dir}/{reference}/log/sample_{R}_{N}.log"
 	shell:
 		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} > {output} 2> {log};"
+		# "./{input.binary} {wildcards.R} {wildcards.N} <(gunzip -c {input.ref}) > {output} 2> {log};"
 		# "ln -s {output} {wilcards.input}/sampled_{wildcards.R}_{wildcards.N}.fa"
 
 

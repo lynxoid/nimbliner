@@ -127,7 +127,7 @@ class Aligner {
         int L = seq->seq.l - K + 1;
         // only allow reads shorter than 2^16
         assert(L < 65536);
-        // vector<bool> matched_kmers;
+        vector<bool> matched_kmers;
 
         auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
         // should deal w/ ends separately -- may need to trim or skip low-quality ends

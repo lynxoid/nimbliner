@@ -23,18 +23,20 @@ Compile a pdf report
 """
 rule compile_pdf_report:
 	input:
-		# expand("{work_dir}/plots/comparison_table.tex", work_dir=config["work_dir"]),
-		# expand("{work_dir}/plots/{method}_comparison_table.tex", 
-		# 	work_dir=config["work_dir"], method=config["methods"]),
-		expand("{work_dir}/plots/{method}_comparison_table_mismatches.tex",
-			work_dir=config["work_dir"], method=config["methods"]),
-		expand("{work_dir}/plots/main.tex", work_dir=config["work_dir"])
+		expand("{work_dir}/{reference}/plots/comparison_table.tex", 
+			work_dir=config["work_dir"], reference=config["reference"]),
+		expand("{work_dir}/{reference}/plots/{method}_comparison_table.tex", 
+			work_dir=config["work_dir"], method=config["methods"], reference=config["reference"]),
+		expand("{work_dir}/{reference}/plots/{method}_comparison_table_mismatches.tex",
+			work_dir=config["work_dir"], method=config["methods"], reference=config["reference"]),
+		expand("{work_dir}/{reference}/plots/main.tex", work_dir=config["work_dir"], reference=config["reference"])
 	params:
-		work_dir=config["work_dir"]
+		work_dir=config["work_dir"],
+		ref=config["reference"]
 	output:
-		expand("{work_dir}/plots/main.pdf", work_dir=config["work_dir"])
+		expand("{work_dir}/{reference}/plots/main.pdf", work_dir=config["work_dir"], reference=config["reference"])
 	shell:
-		"cd {params.work_dir}/plots; pdflatex main; echo {output}"
+		"cd {params.work_dir}/{params.ref}/plots; pdflatex main; echo {output}"
 
 
 """
@@ -43,7 +45,7 @@ rule get_text_template_for_main:
 	input:
 		"plots/main.tex"
 	output:
-		"{work_dir}/plots/main.tex"
+		"{work_dir}/{reference}/plots/main.tex"
 	shell:
 		"cp {input} {output}"
 
@@ -62,7 +64,7 @@ rule make_comparison_table:
 					),
 		script="py-src/latex.py"
 	output:
-		"{work_dir}/plots/{method}_comparison_table.tex"
+		"{work_dir}/{reference}/plots/{method}_comparison_table.tex"
 	run:
 		import latex
 		latex.write_table(input.evals, output[0])
@@ -89,7 +91,7 @@ rule make_mapping_rate_table:
 					),
 		script="py-src/latex.py"
 	output:
-		"{work_dir}/plots/comparison_table.tex"
+		"{work_dir}/{reference}/plots/comparison_table.tex"
 	run:
 		import latex
 		latex.write_mapping_rate_table(input.nimble_data, input.bwa_data, output[0])
@@ -110,7 +112,7 @@ rule make_comparison_table_mismatches:
 					),
 		script="py-src/latex.py"
 	output:
-		"{work_dir}/plots/{method}_comparison_table_mismatches.tex"
+		"{work_dir}/{reference}/plots/{method}_comparison_table_mismatches.tex"
 	run:
 		import latex
 		latex.write_table(input.evals, output[0])
@@ -142,7 +144,8 @@ rule align_reads:
 		"{work_dir}/{reference}/alignments/nimbliner/{dataset}.aligned"
 	log:
 		"{work_dir}/{reference}/log/align_{dataset}.log"
-	params: K=config["K"]
+	params: 
+		K=config["K"]
 	shell:
 		"/usr/bin/time -lp ./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output} 2> {log}"
 

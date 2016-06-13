@@ -1,7 +1,7 @@
 {
 	"work_dir": 	"data/output_mismatches",
 	"input_dir": 	"data/input",
-	"reference":	"hxb2",
+	"reference":	"chr20",
 	"plots": 		"plots",
 	"methods":		["nimbliner", "bwa"],
 	"K":			20

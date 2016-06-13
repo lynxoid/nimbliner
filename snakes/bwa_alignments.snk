@@ -26,11 +26,13 @@ rule align_reads_bwa:
 		index="{work_dir}/{reference}/index/bwa/{reference}",
 	output:
 		"{work_dir}/{reference}/alignments/bwa/{dataset}.bam"
+	threads:
+		1
 	log:
 		"{work_dir}/{reference}/log/bwa/align_{dataset}.log"
 	params: K=config["K"]
 	shell:
-		"/usr/bin/time -lp bwa mem {params.index} {input.reads} 2> {log} | samtools view -Sb - > {output} "
+		"/usr/bin/time -lp bwa mem -t {threads} {params.index} {input.reads} 2> {log} | samtools view -Sb - > {output} "
 
 
 """
