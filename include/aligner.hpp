@@ -242,6 +242,11 @@ class Aligner {
         // passed_cutoff++;
 
         // build_cigar_string(matched_kmers);
+
+        // print the matching pattern
+        cerr << " ";
+        for (auto b : matched_kmers) cerr << b;
+        cerr << " ";
         
         return matched_stars;
     }

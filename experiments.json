@@ -4,5 +4,5 @@
 	"reference":	"chr20",
 	"plots": 		"plots",
 	"methods":		["nimbliner", "bwa"],
-	"K":			20
+	"K":			15
 }
