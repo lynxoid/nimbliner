@@ -200,7 +200,7 @@ class Aligner {
         while (i + 1 < L) {
             // update prev kmer // mask the leftmost character
             get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
-            // cerr << " *** " << mer_binary_to_string(bin_kmer, K) << " ";
+
             // check if kmer present in the reference -- if not, try to correct it assuming a 
             // mismatch first, indels second
             if (_index.has_kmer(bin_kmer) ) {
@@ -213,19 +213,16 @@ class Aligner {
                 // corrects bin_kmer, returns the reference_base that worked
                 bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
                 if (!mismatch) {
-                    // cerr << i + K << "!mm ";
                     matched_kmers.push_back(0);
                     // bool is_indel = is_indel(bin_kmer, _index);
                 }
                 else {
                     // fix the base, change the kmer, and move on
-                    // cerr << i + K << "mm ";
                     // seq->seq.s[i + K] = reference_base;
                     matched_kmers.push_back(1);
                     // correct the current kmer
                     kmer_t mask = get_all_ones(K-1) << 2;
                     bin_kmer = (bin_kmer & mask ) | (kmer_t)dna_codes[reference_base];
-                    // cerr << "corrected kmer: " << mer_binary_to_string(bin_kmer, K) << " ";
                 }
             }
             
