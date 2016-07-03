@@ -133,7 +133,7 @@ class Aligner {
         // only try to permute the last base -- it was the one just added onto the kmer
         // char bases = ['A', 'C', 'G', 'T'];
         // mask is all ones
-        cerr << "was " << mer_binary_to_string(bin_kmer, K) << ", ";
+        // cerr << "was " << mer_binary_to_string(bin_kmer, K) << ", ";
         if ( !matches.back() ) return false;
         // for K=4 mask is 11111100 
         kmer_t mask = get_all_ones(K - 1) << 2;
@@ -182,6 +182,8 @@ class Aligner {
 
         auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
         // should deal w/ ends separately -- may need to trim or skip low-quality ends
+        // TODO: clipping
+        // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
         if (_index.has_kmer(bin_kmer) ) {
             matched_kmers.push_back(1);
         }
@@ -189,19 +191,18 @@ class Aligner {
             matched_kmers.push_back(0);
         }
         
-
         int i = 0;
         if ( _index.has_anchor(bin_kmer) ) {
             matched_stars.emplace_back(bin_kmer, i);
         }
 
         // now go through the rest of the read
-        while (i < L) {
+        while (i + 1 < L) {
             // update prev kmer // mask the leftmost character
             get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
-
-            
-            
+            // cerr << " *** " << mer_binary_to_string(bin_kmer, K) << " ";
+            // check if kmer present in the reference -- if not, try to correct it assuming a 
+            // mismatch first, indels second
             if (_index.has_kmer(bin_kmer) ) {
                 matched_kmers.push_back(1);
             }
@@ -212,27 +213,28 @@ class Aligner {
                 // corrects bin_kmer, returns the reference_base that worked
                 bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
                 if (!mismatch) {
-                    cerr << i + K << "!mm ";
+                    // cerr << i + K << "!mm ";
                     matched_kmers.push_back(0);
                     // bool is_indel = is_indel(bin_kmer, _index);
                 }
                 else {
                     // fix the base, change the kmer, and move on
-                    cerr << i + K << "mm ";
+                    // cerr << i + K << "mm ";
                     // seq->seq.s[i + K] = reference_base;
                     matched_kmers.push_back(1);
                     // correct the current kmer
                     kmer_t mask = get_all_ones(K-1) << 2;
                     bin_kmer = (bin_kmer & mask ) | (kmer_t)dna_codes[reference_base];
-                    cerr << "corrected kmer: " << mer_binary_to_string(bin_kmer, K) << " ";
+                    // cerr << "corrected kmer: " << mer_binary_to_string(bin_kmer, K) << " ";
                 }
             }
             
-
             if ( _index.has_anchor(bin_kmer) ) {
                 // TODO: why a + 1 here?
+                // 'cause that makes it a 1-based coor system relative to read start
                 matched_stars.emplace_back(bin_kmer, i + 1);
             }
+
             i++;
         }
         // require at least 50% of all kmers to match
