@@ -109,8 +109,9 @@ class Aligner {
 		return mappings;
 	}
 
+    /* return a 64-bit binary value that has 1nes for the 2K rightmost bits */
     kmer_t get_all_ones(const int K) {
-        return ( ((kmer_t)1) << ( 2*(K-1) ) ) - 1;;
+        return ( ((kmer_t)1) << ( 2 * K ) ) - (kmer_t)1;
     }
 
     /*
@@ -118,7 +119,7 @@ class Aligner {
      */
 	void get_next_kmer(kmer_t & bin_kmer, const char next_base, const short K) {
         // mask is all ones
-		kmer_t mask = get_all_ones(K);
+		kmer_t mask = get_all_ones(K - 1);
         bin_kmer = (bin_kmer & mask) << 2;
         // append a new char on the right
         bin_kmer = bin_kmer | (kmer_t)dna_codes[ next_base ];
@@ -127,16 +128,20 @@ class Aligner {
     /* a kmer in the current read is not part of the reference as it is -- we will try permuting 
     the last base to see if an altered kmer is present in the reference. if it is, we will return 
     the base that worked through reference_base and correct the kmer and return it through bin_kmer */
-    bool is_mismatch(char * seq, const int i, kmer_t bin_kmer, const ReferenceIndex & _index, 
+    bool is_mismatch(char * seq, const int pos, kmer_t bin_kmer, const ReferenceIndex & _index, 
         char & reference_base, const int K, const vector<bool> & matches, const int L) {
         // only try to permute the last base -- it was the one just added onto the kmer
         // char bases = ['A', 'C', 'G', 'T'];
         // mask is all ones
+        cerr << "was " << mer_binary_to_string(bin_kmer, K) << ", ";
         if ( !matches.back() ) return false;
-        kmer_t mask = get_all_ones(K);
-        for (int i = 0; i < 4; i++) {// 0 - A, 1 - C, 2 - G, 3 - T
-            bin_kmer = (bin_kmer & mask) | (kmer_t)i;
-            cerr << "try " << mer_binary_to_string(bin_kmer, K) << " ";
+        // for K=4 mask is 11111100 
+        kmer_t mask = get_all_ones(K - 1) << 2;
+        // cerr << "mask " << (uint)mask << " ";
+        for (kmer_t i = 0; i < 4; i++) {// 0 - A, 1 - C, 2 - G, 3 - T
+            // mask the last character
+            bin_kmer = (bin_kmer & mask) | i;
+            // cerr << "try " << mer_binary_to_string(bin_kmer, K) << " ";
             if (_index.has_kmer(bin_kmer) ) {
                 // is there a branch in de Buiijn graph that allows for the following kmer as well?
                 if (i + 1 >= L) {
@@ -146,14 +151,20 @@ class Aligner {
                 }
                 else {
                     kmer_t next_kmer = bin_kmer;
-                    get_next_kmer(next_kmer, seq[i+1], K);
+                    get_next_kmer(next_kmer, seq[ pos + 1], K);
+                    // cerr << "next kmer " <<  mer_binary_to_string(next_kmer, K) << " ";
                     if (_index.has_kmer(next_kmer)) {
                         // found a base that works
                         reference_base = bases_to_bits[i];
-                        return true;                    
-                    }    
-                }
-                
+                        return true;
+                    }
+                    else {
+                        // cerr << "next !in_ref ";
+                    }
+                }                
+            }
+            else {
+                // cerr << "!in_ref ";
             }
         }
         return false;
@@ -195,12 +206,8 @@ class Aligner {
                 matched_kmers.push_back(1);
             }
             else {
-                
                 // mismatch? indel?
-
-                // was prev kmer there?
-                // is next kmer there too?
-                // step over the base if not
+                // TODO: step over the base if not
                 char reference_base;
                 // corrects bin_kmer, returns the reference_base that worked
                 bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
@@ -212,9 +219,12 @@ class Aligner {
                 else {
                     // fix the base, change the kmer, and move on
                     cerr << i + K << "mm ";
-                    seq->seq.s[i + K] = reference_base;
+                    // seq->seq.s[i + K] = reference_base;
                     matched_kmers.push_back(1);
-                    bin_kmer = (bin_kmer & get_all_ones(K) ) & (kmer_t)dna_codes[reference_base];
+                    // correct the current kmer
+                    kmer_t mask = get_all_ones(K-1) << 2;
+                    bin_kmer = (bin_kmer & mask ) | (kmer_t)dna_codes[reference_base];
+                    cerr << "corrected kmer: " << mer_binary_to_string(bin_kmer, K) << " ";
                 }
             }
             
