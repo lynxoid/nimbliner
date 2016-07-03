@@ -12,18 +12,18 @@ To index a chromosome:
 	./kmers index 20 chromo.fa
 ```
 
-where 20 is kmer length.
+where 20 is kmer length. This will produce 2 files: chromo.index (all kmers for a pbDG) and chromo.star (kmers selected to be anchors for the index along w/ their locations anywhere in the reference seq).
 
-To sample a million reads from the chromosome:
+To sample a million reads from the chromosome w/ 1.5% error rate:
 
 ```
-	./sample 20 1000000 chromo.fa > sampled_reads.fa
+	./sample 20 1000000 chromo.fa 1.5 > sampled_reads.fa
 ```
 
 To align sampled reads:
 
 ```
-	./kmers query 20 sampled_reads.fa
+	./kmers query 20 chromo.index chromo.star sampled_reads.fa
 ```
 
 chro20 genomic reads were aligned to genome assembly at:
@@ -41,10 +41,10 @@ Reads 2: long, high error rate.
 
 ## Goals: 
  
-- [ ] engineer a testing pipeline; write tests, python code for plotting; script to install/run
+- [x] engineer a testing pipeline; write tests, python code for plotting; script to install/run
   -  [ ] download WGS data for illumina (reference, reads)
-  -  [ ] snakemake pipeline
-  -  [ ] testing frameworks for python, C++, seq. data
+  -  [x] snakemake pipeline
+  -  [x] testing frameworks for python, C++, seq. data
 - [ ] integrate with TravisCI
 - [ ] find a mapping location for a read, provide mapping quality score, produce positions for reads w/ errors (more kmers sampled)
 - [ ] alignment on the laptop (if less memory -- slower, if more memory -- faster)
