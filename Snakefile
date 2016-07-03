@@ -23,20 +23,10 @@ Compile a pdf report
 """
 rule compile_pdf_report:
 	input:
-		expand("{work_dir}/{reference}/k_{K}/plots/comparison_table.tex", 
-			work_dir=config["work_dir"], reference=config["reference"],
-			K=config["K"]),
-		expand("{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table.tex", 
-			work_dir=config["work_dir"], method=config["methods"], reference=config["reference"],
-			K=config["K"]),
-		expand("{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table_mismatches.tex",
-			work_dir=config["work_dir"], method=config["methods"], reference=config["reference"],
-			K=config["K"]),
-		expand("{work_dir}/{reference}/k_{K}/plots/main.tex", work_dir=config["work_dir"], reference=config["reference"],
-			K=config["K"])
-	# params:
-		# work_dir=config["work_dir"],
-		# ref=config["reference"]
+		"{work_dir}/{reference}/k_{K}/plots/comparison_table.tex", 
+		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table.tex", 
+		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table_mismatches.tex",
+		"{work_dir}/{reference}/k_{K}/plots/main.tex"
 	output:
 		expand("{work_dir}/{reference}/k_{K}/plots/main.pdf", 
 			work_dir=config["work_dir"], reference=config["reference"],
@@ -61,10 +51,10 @@ Make a comparison table
 """
 rule make_comparison_table:
 	input:
-		evals=expand("{work_dir}/{reference}/k_{{K}}/analysis/{{method}}/sampled_{readlen}_{count}_eval.txt",
+		evals=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/{{method}}/sampled_{readlen}_{count}_eval.txt",
 					zip,
-					work_dir=[config["work_dir"] for i in range(4)],
-					reference=[config["reference"] for i in range(4)],
+					# work_dir=[config["work_dir"] for i in range(4)],
+					# reference=[config["reference"] for i in range(4)],
 					readlen=[100, 100, 300, 1000],
 					count=[100, 1000000, 300000, 10000]
 					),
@@ -81,17 +71,17 @@ Make a comparison table
 """
 rule make_mapping_rate_table:
 	input:
-		nimble_data=expand("{work_dir}/{reference}/k_{{K}}/analysis/nimbliner/sampled_{readlen}_{count}_eval.txt",
+		nimble_data=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/nimbliner/sampled_{readlen}_{count}_eval.txt",
 					zip,
-					work_dir=[config["work_dir"] for i in range(4)],
-					reference=[config["reference"] for i in range(4)],
+					# work_dir=[config["work_dir"] for i in range(4)],
+					# reference=[config["reference"] for i in range(4)],
 					readlen=[100, 100, 300, 1000],
 					count=[100, 1000000, 300000, 10000]
 					),
-		bwa_data=expand("{work_dir}/{reference}/k_{{K}}/analysis/bwa/sampled_{readlen}_{count}_eval.txt",
+		bwa_data=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/bwa/sampled_{readlen}_{count}_eval.txt",
 					zip,
-					work_dir=[config["work_dir"] for i in range(4)],
-					reference=[config["reference"] for i in range(4)],
+					# work_dir=[config["work_dir"] for i in range(4)],
+					# reference=[config["reference"] for i in range(4)],
 					readlen=[100, 100, 300, 1000],
 					count=[100, 1000000, 300000, 10000]
 					),
@@ -108,14 +98,14 @@ Make a comparison table for reads w/ mismatches
 """
 rule make_comparison_table_mismatches:
 	input:
-		evals=expand("{work_dir}/{reference}/k_{K}/analysis/{{method}}/sampled_{readlen}_{count}_m={mm_rate}pct_eval.txt",
+		evals=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/{{method}}/sampled_{readlen}_{count}_m={mm_rate}pct_eval.txt",
 					zip,
-					work_dir=[config["work_dir"] for i in range(4)],
-					reference=[config["reference"] for i in range(4)],
+					# work_dir=[config["work_dir"] for i in range(4)],
+					# reference=[config["reference"] for i in range(4)],
 					readlen=[100, 100, 100],
 					count=[1000, 1000, 1000],
 					mm_rate=[0.5, 1, 2],
-					K=[config["K"] for i in range(4)]
+					# K=[config["K"] for i in range(4)]
 					),
 		script="py-src/latex.py"
 	output:
