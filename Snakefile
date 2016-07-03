@@ -134,10 +134,10 @@ rule evaluate_nimbliner_alignment:
 """
 Align reads to the reference using the index; log the performance
 """
-rule align_reads:
+rule align_reads_nimbliner:
 	input:
 		index="{work_dir}/{reference}/index/{reference}.index",
-		stars="{work_dir}/{reference}/index/{reference}.star",
+		anchors="{work_dir}/{reference}/index/{reference}.star",
 		reads="{work_dir}/{reference}/sampled/{dataset}.fa",
 		binary="bin/mapper"
 	output:
@@ -147,7 +147,7 @@ rule align_reads:
 	params: 
 		K=config["K"]
 	shell:
-		"/usr/bin/time -lp ./{input.binary} query {params.K} {input.reads} {input.index} {input.stars} > {output} 2> {log}"
+		"/usr/bin/time -lp ./{input.binary} {params.K} {input.reads} {input.index} {input.anchors} > {output} 2> {log}"
 
 
 """
@@ -159,18 +159,18 @@ rule build_index:
 		ref=expand("{input}/{reference}.fa", 
 						input=config["input_dir"], 
 						reference=config["reference"]),
-		binary="bin/mapper"
+		binary="bin/indexer"
 	params: K=config["K"]
 	log:
 		"{work_dir}/{reference}/log/index_{reference}.log"
 	output:
 		index="{work_dir}/{reference}/index/{reference}.index",
-		stars="{work_dir}/{reference}/index/{reference}.star"
+		anchors="{work_dir}/{reference}/index/{reference}.star"
 	shell:
-		"./{input.binary} index {params.K} {input.ref} 2> {log};"
+		"./{input.binary} {params.K} {input.ref} 2> {log};"
 		# drops all_kmers.txt and star_locations.txt files into the current dir
 		"mv all_kmers.txt {output.index};"
-		"mv star_locations.txt {output.stars}"
+		"mv star_locations.txt {output.anchors}"
 
 
 """

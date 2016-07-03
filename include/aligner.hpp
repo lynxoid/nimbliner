@@ -109,15 +109,55 @@ class Aligner {
 		return mappings;
 	}
 
+    kmer_t get_all_ones(const int K) {
+        return ( ((kmer_t)1) << ( 2*(K-1) ) ) - 1;;
+    }
+
     /*
      *
      */
 	void get_next_kmer(kmer_t & bin_kmer, const char next_base, const short K) {
-		kmer_t mask = ( ((kmer_t)1) << ( 2*(K-1) ) ) - 1;
+        // mask is all ones
+		kmer_t mask = get_all_ones(K);
         bin_kmer = (bin_kmer & mask) << 2;
         // append a new char on the right
         bin_kmer = bin_kmer | (kmer_t)dna_codes[ next_base ];
 	}
+
+    /* a kmer in the current read is not part of the reference as it is -- we will try permuting 
+    the last base to see if an altered kmer is present in the reference. if it is, we will return 
+    the base that worked through reference_base and correct the kmer and return it through bin_kmer */
+    bool is_mismatch(char * seq, const int i, kmer_t bin_kmer, const ReferenceIndex & _index, 
+        char & reference_base, const int K, const vector<bool> & matches, const int L) {
+        // only try to permute the last base -- it was the one just added onto the kmer
+        // char bases = ['A', 'C', 'G', 'T'];
+        // mask is all ones
+        if ( !matches.back() ) return false;
+        kmer_t mask = get_all_ones(K);
+        for (int i = 0; i < 4; i++) {// 0 - A, 1 - C, 2 - G, 3 - T
+            bin_kmer = (bin_kmer & mask) | (kmer_t)i;
+            cerr << "try " << mer_binary_to_string(bin_kmer, K) << " ";
+            if (_index.has_kmer(bin_kmer) ) {
+                // is there a branch in de Buiijn graph that allows for the following kmer as well?
+                if (i + 1 >= L) {
+                    // end of read -- can not verify whether this was a mismatch
+                    // TODO: ignore the last base? (soft clip)
+                    return false;
+                }
+                else {
+                    kmer_t next_kmer = bin_kmer;
+                    get_next_kmer(next_kmer, seq[i+1], K);
+                    if (_index.has_kmer(next_kmer)) {
+                        // found a base that works
+                        reference_base = bases_to_bits[i];
+                        return true;                    
+                    }    
+                }
+                
+            }
+        }
+        return false;
+    }
 
     /*
      *
@@ -131,13 +171,13 @@ class Aligner {
 
         auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
         // should deal w/ ends separately -- may need to trim or skip low-quality ends
-        /*
         if (_index.has_kmer(bin_kmer) ) {
             matched_kmers.push_back(1);
         }
-        else
+        else {
             matched_kmers.push_back(0);
-        */
+        }
+        
 
         int i = 0;
         if ( _index.has_anchor(bin_kmer) ) {
@@ -150,18 +190,34 @@ class Aligner {
             get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
 
             
-            /*
+            
             if (_index.has_kmer(bin_kmer) ) {
                 matched_kmers.push_back(1);
             }
             else {
-                matched_kmers.push_back(0);
+                
                 // mismatch? indel?
+
                 // was prev kmer there?
                 // is next kmer there too?
-                // step over the base
+                // step over the base if not
+                char reference_base;
+                // corrects bin_kmer, returns the reference_base that worked
+                bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
+                if (!mismatch) {
+                    cerr << i + K << "!mm ";
+                    matched_kmers.push_back(0);
+                    // bool is_indel = is_indel(bin_kmer, _index);
+                }
+                else {
+                    // fix the base, change the kmer, and move on
+                    cerr << i + K << "mm ";
+                    seq->seq.s[i + K] = reference_base;
+                    matched_kmers.push_back(1);
+                    bin_kmer = (bin_kmer & get_all_ones(K) ) & (kmer_t)dna_codes[reference_base];
+                }
             }
-            */
+            
 
             if ( _index.has_anchor(bin_kmer) ) {
                 // TODO: why a + 1 here?
@@ -172,6 +228,8 @@ class Aligner {
         // require at least 50% of all kmers to match
         // if (cnt_matched / L < 0.45) continue;
         // passed_cutoff++;
+
+        // build_cigar_string(matched_kmers);
         
         return matched_stars;
     }
@@ -203,6 +261,11 @@ public:
             vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K);
 	        // DEBUG info
 	        cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
+            // print anchor positions
+            for (auto& p : matched_stars) {
+                cerr << p.second << ",";
+            }
+            cerr << " ";
 			
 			// resolve star kmers to get an exact mapping location
             auto start = std::chrono::system_clock::now();

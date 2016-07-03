@@ -44,17 +44,18 @@ using namespace std;
 //
 ////////////////////////////////////////////////////////
 int main(int argc, char * argv []) {
-	string mode = argv[1];
-	int K = stoi(argv[2]);
-	string path = argv[3];
+	// string mode = argv[1];
+	int K = stoi(argv[1]);
+	string path = argv[2];
 
-	if (mode == "index") {
-		ReferenceIndex index;
-		index.buildIndex(path, K);
-	}
-	else if (mode == "query") {
-		string kmers_path = argv[4];
-		string stars_path = argv[5];
+	// if (mode == "index") {
+		// ReferenceIndex index;
+		// index.buildIndex(path, K);
+	// }
+	// else if (mode == "query") 
+	{
+		string kmers_path = argv[3];
+		string stars_path = argv[4];
 		
 		ReferenceIndex index;
 		index.readIndex(kmers_path, stars_path, K);

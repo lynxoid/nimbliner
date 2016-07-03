@@ -11,7 +11,7 @@ rule sample_reference_mismatches:
 	output:
 		"{work_dir}/{reference}/sampled/sampled_{R}_{N}_m={mm_rate}pct.fa"
 	log:
-		"{work_dir}/{reference}/log/sample_{R}_{N}_m={mm_rate}.log"
+		"{work_dir}/{reference}/log/sampled_{R}_{N}_m={mm_rate}.log"
 	shell:
 		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} {wildcards.mm_rate} > {output} 2> {log};"
 

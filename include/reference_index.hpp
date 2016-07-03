@@ -205,15 +205,17 @@ public:
 		return;
 	}
 
+	/* returns true if this kmer was present in the reference sequence, false otherwise */
 	bool has_kmer(const kmer_t & kmer) const {
 		return _bf->contains(kmer);
 	}
 
+	/* returns true is this kmer is found among anchors, false otherwise*/
 	bool has_anchor(const kmer_t & kmer) const {
 		return _stars->find(kmer) != _stars->end();
 	}
 
-	// TODO: what does this & do?
+	// TODO: what does this & do? do we use it?
 	vector<genomic_coordinate_t> & get_anchor_locations(const kmer_t & kmer) const {
 		return (*_stars)[kmer];
 	}

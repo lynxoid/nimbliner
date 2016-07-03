@@ -10,6 +10,9 @@
 #define C 1
 #define G 2
 #define MER_T 3
+
+const char bases_to_bits[4] = {'A', 'C', 'G', 'T'};
+
 const char dna_codes[256] = {
   O, O, O, O, O, O, O, O, O, O, I, O, O, O, O, O,
   O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,

@@ -4,7 +4,10 @@ INCLUDE=-I /usr/local/include/ -I include/
 LIB=-L /usr/local/lib/
 FLAGS=-O3 -std=c++11
 
-all: sample mapper
+all: sample mapper indexer
+
+indexer:
+	g++ $(FLAGS) -o $(BIN)/indexer $(SRC)/index_builder.cpp $(INCLUDE) $(LIB)
 
 sample:
 	g++ $(FLAGS) -o $(BIN)/sample $(SRC)/sample_reads.cpp $(INCLUDE) $(LIB)
