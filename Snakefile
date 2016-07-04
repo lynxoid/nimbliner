@@ -18,21 +18,28 @@ small_set = {}
 
 big_set = {}
 
+
+rule get_pdf_report:
+	input:
+		expand("{work_dir}/{reference}/k_{K}/plots/main.pdf", 
+			work_dir=config["work_dir"], reference=config["reference"],
+			K=config["K"])
+
 """
 Compile a pdf report
 """
 rule compile_pdf_report:
 	input:
 		"{work_dir}/{reference}/k_{K}/plots/comparison_table.tex", 
-		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table.tex", 
-		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table_mismatches.tex",
+		expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table.tex", 
+			method=["bwa", "nimbliner"]),
+		expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table_mismatches.tex",
+			method=["bwa", "nimbliner"]),
 		"{work_dir}/{reference}/k_{K}/plots/main.tex"
 	output:
-		expand("{work_dir}/{reference}/k_{K}/plots/main.pdf", 
-			work_dir=config["work_dir"], reference=config["reference"],
-			K=config["K"])
+		"{work_dir}/{reference}/k_{K}/plots/main.pdf"
 	shell:
-		"cd {wildcards.work_dir}/{wildcards.ref}/k_{wildcards.K}/plots; pdflatex main; echo {output}"
+		"cd {wildcards.work_dir}/{wildcards.reference}/k_{wildcards.K}/plots; pdflatex main; echo {output}"
 
 
 """
@@ -102,9 +109,9 @@ rule make_comparison_table_mismatches:
 					zip,
 					# work_dir=[config["work_dir"] for i in range(4)],
 					# reference=[config["reference"] for i in range(4)],
-					readlen=[100, 100, 100],
-					count=[1000, 1000, 1000],
-					mm_rate=[0.5, 1, 2],
+					readlen=[100, 100, 100, 100],
+					count=[1000, 1000, 1000, 1000],
+					mm_rate=[0.5, 1, 2, 3],
 					# K=[config["K"] for i in range(4)]
 					),
 		script="py-src/latex.py"

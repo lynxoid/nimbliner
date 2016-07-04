@@ -130,10 +130,6 @@ class Aligner {
     the base that worked through reference_base and correct the kmer and return it through bin_kmer */
     bool is_mismatch(char * seq, const int pos, kmer_t bin_kmer, const ReferenceIndex & _index, 
         char & reference_base, const int K, const vector<bool> & matches, const int L) {
-        // only try to permute the last base -- it was the one just added onto the kmer
-        // char bases = ['A', 'C', 'G', 'T'];
-        // mask is all ones
-        // cerr << "was " << mer_binary_to_string(bin_kmer, K) << ", ";
         if ( !matches.back() ) return false;
         // for K=4 mask is 11111100 
         kmer_t mask = get_all_ones(K - 1) << 2;
@@ -143,6 +139,7 @@ class Aligner {
             bin_kmer = (bin_kmer & mask) | i;
             // cerr << "try " << mer_binary_to_string(bin_kmer, K) << " ";
             if (_index.has_kmer(bin_kmer) ) {
+                // cerr << "isInRef ";
                 // is there a branch in de Buiijn graph that allows for the following kmer as well?
                 if (i + 1 >= L) {
                     // end of read -- can not verify whether this was a mismatch
@@ -151,9 +148,10 @@ class Aligner {
                 }
                 else {
                     kmer_t next_kmer = bin_kmer;
-                    get_next_kmer(next_kmer, seq[ pos + 1], K);
+                    get_next_kmer(next_kmer, seq[ pos + K + 1], K);
                     // cerr << "next kmer " <<  mer_binary_to_string(next_kmer, K) << " ";
                     if (_index.has_kmer(next_kmer)) {
+                        // cerr << "isInRef ";
                         // found a base that works
                         reference_base = bases_to_bits[i];
                         return true;
@@ -174,6 +172,8 @@ class Aligner {
      *
      */
     vector<pair<kmer_t, int>> find_anchors(const kseq_t * seq, const short K) {
+        bool has_correction = false;
+        
         vector<pair<kmer_t, int>> matched_stars;
         int L = seq->seq.l - K + 1;
         // only allow reads shorter than 2^16
@@ -181,6 +181,7 @@ class Aligner {
         vector<bool> matched_kmers;
 
         auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
+        // cerr << "considering " << mer_binary_to_string(bin_kmer, K) << " ";
         // should deal w/ ends separately -- may need to trim or skip low-quality ends
         // TODO: clipping
         // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
@@ -200,6 +201,7 @@ class Aligner {
         while (i + 1 < L) {
             // update prev kmer // mask the leftmost character
             get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
+            // cerr << "considering " << mer_binary_to_string(bin_kmer, K) << " ";
 
             // check if kmer present in the reference -- if not, try to correct it assuming a 
             // mismatch first, indels second
@@ -212,11 +214,13 @@ class Aligner {
                 char reference_base;
                 // corrects bin_kmer, returns the reference_base that worked
                 bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
+
                 if (!mismatch) {
                     matched_kmers.push_back(0);
                     // bool is_indel = is_indel(bin_kmer, _index);
                 }
                 else {
+                    has_correction = true;
                     // fix the base, change the kmer, and move on
                     // seq->seq.s[i + K] = reference_base;
                     matched_kmers.push_back(1);
@@ -226,7 +230,9 @@ class Aligner {
                 }
             }
             
-            if ( _index.has_anchor(bin_kmer) ) {
+            if ( _index.has_anchor(bin_kmer) && 
+                matched_kmers.back() == 1 && 
+                matched_kmers[matched_kmers.size() - 2] == 1 ) {
                 // TODO: why a + 1 here?
                 // 'cause that makes it a 1-based coor system relative to read start
                 matched_stars.emplace_back(bin_kmer, i + 1);
@@ -234,9 +240,6 @@ class Aligner {
 
             i++;
         }
-        // require at least 50% of all kmers to match
-        // if (cnt_matched / L < 0.45) continue;
-        // passed_cutoff++;
 
         // build_cigar_string(matched_kmers);
 
@@ -245,6 +248,8 @@ class Aligner {
         for (auto b : matched_kmers) cerr << b;
         cerr << " ";
         
+        // if (has_correction) exit(1);
+
         return matched_stars;
     }
 

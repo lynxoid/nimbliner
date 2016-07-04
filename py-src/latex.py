@@ -45,7 +45,7 @@ def write_table_footer(f_out, caption):
 # write a table comparing mapping performance to latex file
 def write_table(inputs, output_path):
 	with open(output_path, "w") as f_out:
-		write_table_header(f_out, "Dataset & \% on target & trueSingle & mismapped & multimapT & multimapF & unmapped".split(" & "))
+		write_table_header(f_out, "Dataset & \% on target & trueSingle & falseSingle & trueMulti & falseMulti & unmapped".split(" & "))
 		for path in inputs:
 			method = path.split("/")[-2]
 			name = path.split("/")[-1].rstrip("_eval.txt")
