@@ -4,6 +4,8 @@ You need libbf. Dont forget about DYLD_LIBRARY_PATH / DYLD_FALLBACK_LIBRARY_PATH
 
 ### Installation ###
 
+Requires [TCLAP](http://tclap.sourceforge.net/) -- install separately before installing the rest. Then download code/checkout, run `make`.
+
 ### Run
 
 To index a chromosome:
