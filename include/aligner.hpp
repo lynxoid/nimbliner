@@ -158,13 +158,12 @@ class Aligner {
         if ( !matches.back() ) return false;
         // for K=4 mask is 11111100 
         kmer_t mask = get_all_ones(K - 1) << 2;
-        // cerr << "mask " << (uint)mask << " ";
         for (kmer_t i = 0; i < 4; i++) {// 0 - A, 1 - C, 2 - G, 3 - T
             // mask the last character
             bin_kmer = (bin_kmer & mask) | i;
-            cerr << "try " << mer_binary_to_string(bin_kmer, K) << " ";
+            // cerr << "try " << mer_binary_to_string(bin_kmer, K) << " ";
             if (_index.has_kmer(bin_kmer) ) {
-                cerr << "isInRef ";
+                // cerr << "YES ";
                 // is there a branch in de Buiijn graph that allows for the following kmer as well?
                 if (i + 1 >= L) {
                     // end of read -- can not verify whether this was a mismatch
@@ -174,20 +173,20 @@ class Aligner {
                 else {
                     kmer_t next_kmer = bin_kmer;
                     next_kmer = get_next_kmer(next_kmer, seq[ pos + K + 1], K);
-                    cerr << "next kmer " <<  mer_binary_to_string(next_kmer, K) << " ";
+                    // cerr << "next kmer " <<  mer_binary_to_string(next_kmer, K) << " ";
                     if (_index.has_kmer(next_kmer)) {
-                        cerr << "also isInRef ";
+                        // cerr << "also YES ";
                         // found a base that works
                         reference_base = bases_to_bits[i];
                         return true;
                     }
                     else {
-                        cerr << "next !in_ref ";
+                        // cerr << "next !in_ref ";
                     }
                 }                
             }
             else {
-                cerr << "!in_ref ";
+                // cerr << "- NO, ";
             }
         }
         return false;
@@ -217,8 +216,8 @@ class Aligner {
             // update prev kmer, mask the leftmost character
             bin_kmer = get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
             
-            if (debug)
-            cerr << "i=" << i << " 0-coord: " << i+1 << " " << mer_binary_to_string(bin_kmer, K) << " ";
+            // if (debug)
+            // cerr << "i=" << i << " 0-coord: " << i+1 << " " << mer_binary_to_string(bin_kmer, K) << " ";
 
             // check if kmer is present in the reference -- if not, try to correct it assuming a 
             // mismatch first, indels second
@@ -227,6 +226,9 @@ class Aligner {
                 matched_kmers.push_back(1);
             }
             else {
+                // if (debug)
+                // cerr << "i=" << i << " 0-coord: " << i+1 << " " << mer_binary_to_string(bin_kmer, K) << " ";
+
                 // mismatch? indel?
                 // TODO: step over the base if not
                 char reference_base;
@@ -234,7 +236,8 @@ class Aligner {
                 bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
 
                 if (!mismatch) {
-                    cerr << "could not resolve as MM ";
+                    if (debug)
+                    // cerr << "could not resolve as MM ";
                     matched_kmers.push_back(0);
                     // TODO: is an indel?
                     // bool is_indel = is_indel(bin_kmer, _index);
@@ -247,16 +250,15 @@ class Aligner {
                     // correct the current kmer
                     kmer_t mask = get_all_ones(K-1) << 2;
                     bin_kmer = (bin_kmer & mask ) | (kmer_t)dna_codes[reference_base];
-                    if (debug)
-                    cerr << "\tcorrected kmer " << mer_binary_to_string(bin_kmer, K) << " ";
+                    // if (debug)
+                    // cerr << "\tcorrected kmer " << mer_binary_to_string(bin_kmer, K) << " ";
                 }
+                cerr << endl;
             }
             
-            if ( _index.has_anchor(bin_kmer) && 
-                matched_kmers.back() == 1 && 
+            if ( _index.has_anchor(bin_kmer) &&  matched_kmers.back() == 1 && 
                 matched_kmers[matched_kmers.size() - 2] == 1 ) {
-                // TODO: why a + 1 here?
-                // 'cause that makes it a 1-based coor system relative to read start
+                // using i+1 since that makes it a 1-based coord system relative to read start
                 matched_stars.emplace_back(bin_kmer, i + 1);
             }
 
@@ -269,7 +271,7 @@ class Aligner {
         if (debug) {
             cerr << " ";
             for (auto b : matched_kmers) cerr << b;
-            cerr << " ";
+            cerr << endl;
         }
         
         // if (has_correction) exit(1);

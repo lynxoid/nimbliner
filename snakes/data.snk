@@ -1,38 +1,18 @@
 # download real data
 
-
 """
-Run the sampling w/ mismatches (1% error rate)
+Run the sampling with settings for indels and mismatche rates
 """
-rule sample_reference_mismatches:
+rule sample_reference_indels:
 	input:
 		ref=expand("{input}/{reference}.fa", input=config["input_dir"], reference=config["reference"]),
 		binary="bin/sample"
 	output:
-		"{work_dir}/{reference}/sampled/sampled_{R}_{N}_m={mm_rate}pct.fa"
+		"{work_dir}/{reference}/sampled/sampled_{R}_{N}_m={mm_rate}pct_d={d_rate}pct.fa"
 	log:
-		"{work_dir}/{reference}/log/sampled_{R}_{N}_m={mm_rate}.log"
+		"{work_dir}/{reference}/log/sample_{R}_{N}_m0_d{d_rate}.log"
 	shell:
-		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} {wildcards.mm_rate} > {output} 2> {log};"
-
-
-
-"""
-Run the sampling w/o errors
-"""
-rule sample_reference_no_error:
-	input:
-		ref=expand("{input}/{reference}.fa", input=config["input_dir"], reference=config["reference"]),
-		binary="bin/sample"
-	output:
-		"{work_dir}/{reference}/sampled/sampled_{R,[0-9]+}_{N,[0-9]+}.fa"
-	log:
-		"{work_dir}/{reference}/log/sample_{R}_{N}.log"
-	shell:
-		"./{input.binary} {wildcards.R} {wildcards.N} {input.ref} > {output} 2> {log};"
-		# "./{input.binary} {wildcards.R} {wildcards.N} <(gunzip -c {input.ref}) > {output} 2> {log};"
-		# "ln -s {output} {wilcards.input}/sampled_{wildcards.R}_{wildcards.N}.fa"
-
+		"./{input.binary} -l {wildcards.R} -n {wildcards.N} -i {input.ref} -m {wildcards.mm_rate} -d {wildcards.d_rate} -o {output} 2> {log};"
 
 
 

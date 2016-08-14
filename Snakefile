@@ -20,22 +20,21 @@ big_set = {}
 
 TIME_CMD = "/usr/bin/time -lp nice "
 
-
-rule get_pdf_report:
+# one rule to rule them all
+rule run_pipeline:
 	input:
 		expand("{work_dir}/{reference}/k_{K}/plots/main.pdf", 
 			work_dir=config["work_dir"], reference=config["reference"],
 			K=config["K"])
 
-"""
-Compile a pdf report
-"""
+
+# Compile a full pdf report
 rule compile_pdf_report:
 	input:
-		"{work_dir}/{reference}/k_{K}/plots/comparison_table.tex", 
-		expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table.tex", 
-			method=["bwa", "nimbliner"]),
-		expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table_mismatches.tex",
+		# "{work_dir}/{reference}/k_{K}/plots/comparison_table.tex", 
+		# expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table.tex", 
+			# method=["bwa", "nimbliner"]),
+		expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table_all.tex",
 			method=["bwa", "nimbliner"]),
 		"{work_dir}/{reference}/k_{K}/plots/main.tex"
 	output:
@@ -44,8 +43,7 @@ rule compile_pdf_report:
 		"cd {wildcards.work_dir}/{wildcards.reference}/k_{wildcards.K}/plots; pdflatex main; echo {output}"
 
 
-"""
-"""
+# copy the clean latex template
 rule get_text_template_for_main:
 	input:
 		"plots/main.tex"
@@ -55,83 +53,25 @@ rule get_text_template_for_main:
 		"cp {input} {output}"
 
 
-"""
-Make a comparison table
-"""
-rule make_comparison_table:
+
+# Make a comparison table for reads w/ mismatches
+rule make_comparison_table_all:
 	input:
-		evals=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/{{method}}/sampled_{readlen}_{count}_eval.txt",
+		evals=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/{{method}}/sampled_{readlen}_{count}_m={mm_rate}pct_d={d_rate}pct_eval.txt",
 					zip,
-					# work_dir=[config["work_dir"] for i in range(4)],
-					# reference=[config["reference"] for i in range(4)],
-					# readlen=[100, 100, 300, 1000],
-					# count=[1000, 1000000, 300000, 10000]
-					readlen=[100],
-					count=[100]
-					),
+					readlen=[100 for i in range(5)],
+					count=[1000 for i in range(5)],
+					mm_rate =[0, 0.5, 3.0, 0.0, 0.0],
+					d_rate	=[0, 0.0, 0.0, 0.1, 0.2]),
 		script="py-src/latex.py"
 	output:
-		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table.tex"
+		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table_all.tex"
 	run:
 		import latex
 		latex.write_table(input.evals, output[0])
 
 
-"""
-Make a comparison table
-"""
-rule make_mapping_rate_table:
-	input:
-		nimble_data=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/nimbliner/sampled_{readlen}_{count}_eval.txt",
-					zip,
-					# work_dir=[config["work_dir"] for i in range(4)],
-					# reference=[config["reference"] for i in range(4)],
-					# readlen=[100, 100, 300, 1000],
-					# count=[100, 1000000, 300000, 10000]
-					readlen=[100],
-					count=[100]
-					),
-		bwa_data=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/bwa/sampled_{readlen}_{count}_eval.txt",
-					zip,
-					# work_dir=[config["work_dir"] for i in range(4)],
-					# reference=[config["reference"] for i in range(4)],
-					# readlen=[100, 100, 300, 1000],
-					# count=[100, 1000000, 300000, 10000]
-					readlen=[100],
-					count=[100]
-					),
-		script="py-src/latex.py"
-	output:
-		"{work_dir}/{reference}/k_{K}/plots/comparison_table.tex"
-	run:
-		import latex
-		latex.write_mapping_rate_table(input.nimble_data, input.bwa_data, output[0])
-
-
-"""
-Make a comparison table for reads w/ mismatches
-"""
-rule make_comparison_table_mismatches:
-	input:
-		evals=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/{{method}}/sampled_{readlen}_{count}_m={mm_rate}pct_eval.txt",
-					zip,
-					# work_dir=[config["work_dir"] for i in range(4)],
-					# reference=[config["reference"] for i in range(4)],
-					readlen=[100, 100, 100, 100],
-					count=[1000, 1000, 1000, 1000],
-					mm_rate=[0.5, 1, 2, 3],
-					# K=[config["K"] for i in range(4)]
-					),
-		script="py-src/latex.py"
-	output:
-		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table_mismatches.tex"
-	run:
-		import latex
-		latex.write_table(input.evals, output[0])
-
-
-"""
-"""
+# summarize performance results from the output and logs
 rule evaluate_nimbliner_alignment:
 	input:
 		align="{work_dir}/{reference}/k_{K}/alignments/nimbliner/{dataset}.aligned",
@@ -143,9 +83,8 @@ rule evaluate_nimbliner_alignment:
 		stats.compute_basic_stats(input.align, output[0])
 
 
-"""
-Align reads to the reference using the index; log the performance
-"""
+
+# Align reads to the reference using the index; log the performance
 rule align_reads_nimbliner:
 	input:
 		index="{work_dir}/{reference}/k_{K}/index/{reference}.index",
@@ -160,9 +99,8 @@ rule align_reads_nimbliner:
 		TIME_CMD + "./{input.binary} {wildcards.K} {input.reads} {input.index} {input.anchors} > {output} 2> {log}"
 
 
-"""
-Run the tool to build an index of the reference sequence
-"""
+
+# Run the tool to build an index of the reference sequence
 rule build_index:
 	input:
 		code=["include/reference_index_builder.hpp", "src/sample_reads.cpp"],
@@ -182,9 +120,8 @@ rule build_index:
 		"mv anchors.txt {output.anchors}"
 
 
-"""
-Compile if any of the input file have changed
-"""
+
+# Compile if any of the input file have changed
 rule compile_aligner:
 	input:
 		"src/kmer_location.cpp",
@@ -195,9 +132,8 @@ rule compile_aligner:
 	shell:
 		"rm -f {output}; make mapper"
 
-"""
-Compile index builder
-"""
+
+# Compile index builder
 rule compile_index_builder:
 	input:
 		"src/index_builder.cpp",
