@@ -8,7 +8,7 @@ Requires [TCLAP](http://tclap.sourceforge.net/) -- install separately before ins
 
 ### Run
 
-To index a chromosome:
+To create an index for a chromosome:
 
 ```
 	./kmers index 20 chromo.fa
