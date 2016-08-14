@@ -18,6 +18,8 @@ small_set = {}
 
 big_set = {}
 
+TIME_CMD = "/usr/bin/time -lp nice "
+
 
 rule get_pdf_report:
 	input:
@@ -62,8 +64,10 @@ rule make_comparison_table:
 					zip,
 					# work_dir=[config["work_dir"] for i in range(4)],
 					# reference=[config["reference"] for i in range(4)],
-					readlen=[100, 100, 300, 1000],
-					count=[100, 1000000, 300000, 10000]
+					# readlen=[100, 100, 300, 1000],
+					# count=[1000, 1000000, 300000, 10000]
+					readlen=[100],
+					count=[100]
 					),
 		script="py-src/latex.py"
 	output:
@@ -82,15 +86,19 @@ rule make_mapping_rate_table:
 					zip,
 					# work_dir=[config["work_dir"] for i in range(4)],
 					# reference=[config["reference"] for i in range(4)],
-					readlen=[100, 100, 300, 1000],
-					count=[100, 1000000, 300000, 10000]
+					# readlen=[100, 100, 300, 1000],
+					# count=[100, 1000000, 300000, 10000]
+					readlen=[100],
+					count=[100]
 					),
 		bwa_data=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/bwa/sampled_{readlen}_{count}_eval.txt",
 					zip,
 					# work_dir=[config["work_dir"] for i in range(4)],
 					# reference=[config["reference"] for i in range(4)],
-					readlen=[100, 100, 300, 1000],
-					count=[100, 1000000, 300000, 10000]
+					# readlen=[100, 100, 300, 1000],
+					# count=[100, 1000000, 300000, 10000]
+					readlen=[100],
+					count=[100]
 					),
 		script="py-src/latex.py"
 	output:
@@ -149,7 +157,7 @@ rule align_reads_nimbliner:
 	log:
 		"{work_dir}/{reference}/k_{K}/log/align_{dataset}.log"
 	shell:
-		"/usr/bin/time -lp ./{input.binary} {wildcards.K} {input.reads} {input.index} {input.anchors} > {output} 2> {log}"
+		TIME_CMD + "./{input.binary} {wildcards.K} {input.reads} {input.index} {input.anchors} > {output} 2> {log}"
 
 
 """
@@ -157,10 +165,10 @@ Run the tool to build an index of the reference sequence
 """
 rule build_index:
 	input:
-		code=["include/reference_index.hpp", "src/sample_reads.cpp"],
+		code=["include/reference_index_builder.hpp", "src/sample_reads.cpp"],
 		ref=expand("{input}/{reference}.fa", 
-						input=config["input_dir"], 
-						reference=config["reference"]),
+			input=config["input_dir"], 
+			reference=config["reference"]),
 		binary="bin/indexer"
 	log:
 		"{work_dir}/{reference}/log/index_{reference}.log"
@@ -168,10 +176,10 @@ rule build_index:
 		index="{work_dir}/{reference}/k_{K}/index/{reference}.index",
 		anchors="{work_dir}/{reference}/k_{K}/index/{reference}.star"
 	shell:
-		"./{input.binary} {wildcards.K} {input.ref} 2> {log};"
+		TIME_CMD + "./{input.binary} {wildcards.K} {input.ref} 2> {log};"
 		# drops all_kmers.txt and star_locations.txt files into the current dir
 		"mv all_kmers.txt {output.index};"
-		"mv star_locations.txt {output.anchors}"
+		"mv anchors.txt {output.anchors}"
 
 
 """
@@ -193,7 +201,7 @@ Compile index builder
 rule compile_index_builder:
 	input:
 		"src/index_builder.cpp",
-		"include/reference_index.hpp"
+		"include/reference_index_builder.hpp"
 	output:
 		"bin/indexer"
 	shell:

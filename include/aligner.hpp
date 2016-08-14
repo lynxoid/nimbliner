@@ -11,6 +11,10 @@
 #include "reference_index.hpp"
 #include "definitions.hpp"
 
+void print_read(const kseq_t * seq) {
+    cerr << "read " << seq->seq.s << endl;
+}
+
 class Aligner {
 
 	ReferenceIndex _index;
@@ -126,6 +130,26 @@ class Aligner {
         return bin_kmer;
 	}
 
+    /*
+     * // cerr << "considering " << mer_binary_to_string(bin_kmer, K) << " ";
+        // should deal w/ ends separately -- may need to trim or skip low-quality ends
+        // TODO: clipping
+        // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
+     */
+    kmer_t handle_first_kmer(kmer_t bin_kmer, vector<bool> & matched_kmers, 
+        vector<pair<kmer_t, int>> & matched_stars) {
+        if (_index.has_kmer(bin_kmer) ) {
+            matched_kmers.push_back(1);
+        }
+        else {
+            matched_kmers.push_back(0);
+        }
+        if ( _index.has_anchor(bin_kmer) ) {
+            matched_stars.emplace_back(bin_kmer, 0);
+        }
+        return bin_kmer;
+    }
+
     /* a kmer in the current read is not part of the reference as it is -- we will try permuting 
     the last base to see if an altered kmer is present in the reference. if it is, we will return 
     the base that worked through reference_base and correct the kmer and return it through bin_kmer */
@@ -175,70 +199,34 @@ class Aligner {
     vector<pair<kmer_t, int>> find_anchors(const kseq_t * seq, const short K, bool debug = true) {
         if (debug)
         cerr << "============================================================" << endl;
+        print_read(seq);
 
-        bool has_correction = false;
-        
         vector<pair<kmer_t, int>> matched_stars;
+        bool has_correction = false;
         int L = seq->seq.l - K + 1;
-        // only allow reads shorter than 2^16
-        assert(L < 65536);
+        assert(L < 65536); // only allow reads shorter than 2^16. WHY? aug 13 2016
         vector<bool> matched_kmers;
 
-        auto bin_kmer = mer_string_to_binary(seq->seq.s, K);
-        kmer_t bin_kmer_next;
-        // cerr << "considering " << mer_binary_to_string(bin_kmer, K) << " ";
-        // should deal w/ ends separately -- may need to trim or skip low-quality ends
-        // TODO: clipping
-        // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
-        if (_index.has_kmer(bin_kmer) ) {
-            matched_kmers.push_back(1);
-        }
-        else {
-            matched_kmers.push_back(0);
-        }
+        kmer_t bin_kmer = mer_string_to_binary(seq->seq.s, K), bin_kmer_next;
+        
+        bin_kmer = handle_first_kmer(bin_kmer, matched_kmers, matched_stars);
         
         int i = 0;
-        if ( _index.has_anchor(bin_kmer) ) {
-            matched_stars.emplace_back(bin_kmer, i);
-        }
-
         // now go through the rest of the read
         while (i + 1 < L) {
-            // update prev kmer // mask the leftmost character
+            // update prev kmer, mask the leftmost character
             bin_kmer = get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
             
             if (debug)
-            cerr << "i=" << i << " 0-coord: " << i+1 << " considering " << mer_binary_to_string(bin_kmer, K) << " ";
+            cerr << "i=" << i << " 0-coord: " << i+1 << " " << mer_binary_to_string(bin_kmer, K) << " ";
 
             // check if kmer is present in the reference -- if not, try to correct it assuming a 
             // mismatch first, indels second
-            // also check if the next kmer is in the reference also -- 'ucase this one mihgt be FP 
-            // for a kmer w/ a variant (not really i the ref, but a FP)
             if (_index.has_kmer(bin_kmer) ) {
-                // if (i + 2 < L) {
-                    // check the next kmer -- if it is also present in BF, then assume bin_kmer is
-                    // a FP
-                    // otherwise assume bin_kmer is a FP and needs resolving
-                    bin_kmer_next = get_next_kmer(bin_kmer, seq->seq.s[i + K + 1], K);
-                    if (debug)
-                    cerr << "next kmer: " << mer_binary_to_string(bin_kmer_next, K) << " ";
-                    if (_index.has_kmer(bin_kmer_next) ) {
-                        if (debug)
-                        cerr << "present ";
-                        matched_kmers.push_back(1);
-                        resolved = true;
-                    }
-                    else {
-                        if (debug)
-                        cerr << "not present -- a FP ||| ";
-                    }
-                // }
+                // TODO: could be a FP -- reduce FP rate w/ cascading BF?
+                matched_kmers.push_back(1);
             }
             else {
-                if (debug) cerr << "not in BF ||| ";
-            }
-
-            if (!resolved) {
                 // mismatch? indel?
                 // TODO: step over the base if not
                 char reference_base;
@@ -298,7 +286,7 @@ public:
 	////////////////////////////////////////////////////////
 	//
 	////////////////////////////////////////////////////////
-	void alignReads(const string & path, const int K) {
+	void alignReads(const string & path, const int K, bool debug = true) {
 		FastaReader fr(path.c_str());
 	    kseq_t * seq;
 	    int passed_cutoff = 0;

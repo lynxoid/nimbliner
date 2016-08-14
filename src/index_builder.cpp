@@ -9,7 +9,8 @@
 #include "FastaReader.h"
 #include "SeqBFUtil.hpp"
 
-#include "reference_index.hpp"
+// #include "reference_index.hpp"
+#include "reference_index_builder.hpp"
 #include "aligner.hpp"
 #include "definitions.hpp"
 
@@ -47,6 +48,6 @@ int main(int argc, char * argv []) {
 	int K = stoi(argv[1]);
 	string path = argv[2];
 
-	ReferenceIndex index;
+	ReferenceIndexBuilder index;
 	index.buildIndex(path, K);
 }

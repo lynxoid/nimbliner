@@ -17,7 +17,24 @@
 
 using namespace std;
 
-typedef int genomic_coordinate_t;
+
+/* generate all possible variants for a kmer of a given length w/ hamming 
+distance mm from the original */
+shared_ptr<vector<kmer_t>> generate_all_variants(const kmer_t & kmer, const unsigned char K, const unsigned char mm = 1) {
+	shared_ptr<vector<kmer_t>> variants( new vector<kmer_t>() );
+	for (int i = 0; i < K; i++) {
+		// create a mask w/ 11 in all positions but i, 00 in i position
+		kmer_t mask = pow(2, K * 2) - 1;
+		mask = mask ^ ( ( (kmer_t) 3) << (2*i) );
+		for (kmer_t base = 0; base < 4; base++) {
+			// apply mask to the kmer -- creates two 0s in the 2i position
+			kmer_t masked_kmer = kmer & mask;
+			// now OR the base at that position w/ the kmer
+			variants->push_back( masked_kmer | (base << (2*i) ) );
+		}
+	}
+	return variants;
+}
 
 class ReferenceIndex {
 
@@ -25,7 +42,6 @@ class ReferenceIndex {
 	shared_ptr<BaseBloomFilter> _bf;
 
 	// anchor locations (stars)
-	// TODO: how to choose these intelligently
 	shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _stars;
 
 	// read kmers describing the reference from the file
@@ -43,7 +59,7 @@ class ReferenceIndex {
 		uint64_t kmer_count = stol(line);
 		// cerr << "Expected kmer count: " << kmer_count << endl;
 		// BaseBloomFilter bf(K, kmer_count * 10);
-		shared_ptr<BaseBloomFilter> bloom = shared_ptr<BaseBloomFilter>(new BaseBloomFilter(K, kmer_count * 10) );
+		shared_ptr<BaseBloomFilter> bloom = shared_ptr<BaseBloomFilter>(new BaseBloomFilter(K, kmer_count * 15) );
 
 		static const auto BUFFER_SIZE = (size_t)pow(2,22); // do not overwhelm the stack :)
 		// cerr << "Buffer size, bytes: " << BUFFER_SIZE << endl;
@@ -155,56 +171,6 @@ public:
 		_stars = readStarLocations(stars_path, K);
 	}
 
-	// given a path to the reference and a kmer length K, parse the reference
-	// fasta, obtain all kmers and select anchors using a heuristic
-	// write kmers to an *.index file and write anchors to *.star file.
-	void buildIndex(const string & ref_path, int K) {
-		auto chromosomes = parseFasta(ref_path);
-		// count kmers, record their locations
-		unordered_map<kmer_t, vector<genomic_coordinate_t>> kmer_locations;
-
-		unordered_set<kmer_t> star_kmers;
-		assert(chromosomes.size() > 0);
-		auto chr = chromosomes[0];
-
-		int c = 0;
-		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
-			kmer_t kmer = mer_string_to_binary(&chr[i], K);
-			if ( kmer_locations.find(kmer) == kmer_locations.end() ) {
-				kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
-			}
-			else {
-				 // can delta encode here and fit into less space technically
-				kmer_locations[kmer].push_back(i);
-			}
-			// pick stars at every 50 bases
-			if (i % 50 == 0) star_kmers.emplace(kmer);
-			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
-		}
-		cerr << "(" << kmer_locations.size() << " kmers)" << endl;
-		cerr << "(" << star_kmers.size() << " star kmers)" << endl;
-
-		ofstream star_locations_out("star_locations.txt");
-		ofstream all_kmers("all_kmers.txt");
-		all_kmers << kmer_locations.size() << endl;
-		cerr << "saving star locations" << endl;
-		for (auto star : star_kmers) {
-			star_locations_out << star << " ";
-			for (auto loc : kmer_locations[star]) star_locations_out << loc << " ";
-			star_locations_out << endl;
-			all_kmers << star << endl;
-			kmer_locations.erase(star);
-		}
-		cerr << "saving all kmers" << endl;
-		for (auto p : kmer_locations) {
-			all_kmers << p.first << endl;
-		}
-		all_kmers.close();
-		star_locations_out.close();
-		kmer_locations.clear();
-		return;
-	}
-
 	/* returns true if this kmer was present in the reference sequence, false otherwise */
 	bool has_kmer(const kmer_t & kmer) const {
 		return _bf->contains(kmer);
@@ -214,6 +180,18 @@ public:
 	bool has_anchor(const kmer_t & kmer) const {
 		return _stars->find(kmer) != _stars->end();
 	}
+
+	/* allow anchors w/ 1 mm  */
+	// bool has_anchor(const kmer_t & kmer, const unsigned char K = 20) const {
+	// 	// TODO: generate all variants of this kmer
+	// 	// and try them all
+	// 	// TODO: SIMD optimization
+	// 	shared_ptr<vector<kmer_t>> kmer_variants = generate_all_variants(kmer, K, 1);
+	// 	for (const kmer_t & kmer : *kmer_variants) {
+	// 		if (_stars->find(kmer) != _stars->end()) return true;
+	// 	}
+	// 	return false;
+	// }
 
 	// TODO: what does this & do? do we use it?
 	vector<genomic_coordinate_t> & get_anchor_locations(const kmer_t & kmer) const {
