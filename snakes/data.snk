@@ -8,7 +8,7 @@ rule sample_reference_indels:
 		ref=expand("{input}/{reference}.fa", input=config["input_dir"], reference=config["reference"]),
 		binary="bin/sample"
 	output:
-		"{work_dir}/{reference}/sampled/sampled_{R}_{N}_m={mm_rate}pct_d={d_rate}pct.fa"
+		"{work_dir}/{reference,[a-z0-9]+}/sampled/sampled_{R}_{N}_m={mm_rate}pct_d={d_rate}pct.fa"
 	log:
 		"{work_dir}/{reference}/log/sample_{R}_{N}_m0_d{d_rate}.log"
 	shell:

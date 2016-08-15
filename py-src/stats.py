@@ -1,13 +1,18 @@
 import pysam
+import re
 
-def write_eval_file(path, true_single, mismapped, unmapped, multimapped_no_true, multimapped_has_true):
+def write_eval_file(path, true_single, mismapped, unmapped, multimapped_no_true, 
+    multimapped_has_true):
+    """
+    """
     with open(path, "w") as f_out:
         f_out.write("true_single: {}\n".format(true_single))
         f_out.write("mismapped: {}\n".format(mismapped))
         f_out.write("unmapped: {}\n".format(unmapped))
         f_out.write("multimapped_no_true: {}\n".format(multimapped_no_true))
         f_out.write("multimapped_has_true: {}\n".format(multimapped_has_true))
-        total = true_single + mismapped + unmapped + multimapped_has_true + multimapped_no_true
+        total = true_single + mismapped + unmapped + multimapped_has_true + \
+            multimapped_no_true
         if total != 0:
             f_out.write("mapping rate: {}\n".format( 1 - unmapped / float(total) ) )
             f_out.write("recovered at least 1 correct: {}\n".format( (true_single + multimapped_has_true) / float(total) ) )
@@ -17,8 +22,32 @@ def write_eval_file(path, true_single, mismapped, unmapped, multimapped_no_true,
 
 
 def compare_true_observed_positions(true, observed, margin=2):
+    """
+    """
     return abs(true - observed) < margin
 
+def parse_read_name(name):
+    # parts = name.strip("_").split("_")
+    # read_id = parts[0]
+    # true_position = parts[1]
+    pattern = "(\d+)_(\d+)(?:(?:_m=((?:\d+_)+))?)(?:(?:_i=((?:\d+_)+))?)"
+    m = re.search(pattern, name)
+    if m == None:
+        print("Invalid read name -- can not match w/ regex")
+        print(name)
+        print("Expected format: <id>_<start_pos>(_m=<mismatches>?)(_i=<deletions and ins>?) ")
+        print("where mismatches/indesl are a series of postions w/in the read, _ separated")
+        exit(1)
+    read_id = int(m.group(1))
+    true_position = int(m.group(2))
+    mismatches = m.group(3)
+    indels = m.group(4)
+    if mismatches != None:
+        mismatches = list(map(int, str(mismatches).strip("_").split("_") ) )
+    if indels != None:
+        indels = list(map(int, str(indels).strip("_").split("_") ) )
+    
+    return true_position, mismatches, indels
 
 def compute_basic_stats(in_path, out_path, margin=3):
     # with open(out_path, "w") as f_out:
@@ -29,13 +58,15 @@ def compute_basic_stats(in_path, out_path, margin=3):
     multimapped_has_true = 0
     multimapped_no_true = 0
     with open(in_path, "r") as f_in:
-        
         for line in f_in:
+            
             parts = line.strip().split("\t")
+
             if len(parts) < 2:
                 unmapped += 1
                 continue
-            true_location = int(parts[0].split("_")[1])
+            true_location, mismatches, indels = parse_read_name(parts[0])
+            # true_location = int(parts[0].split("_")[1])
             observed_locations = parts[1]
             observed_locations = list(map(int,observed_locations.split(" ") ) )
             if len(observed_locations) == 1:

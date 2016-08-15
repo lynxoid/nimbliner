@@ -1,6 +1,6 @@
 # run and evaluate bwa alignments
 
-
+TIME_CMD = "/usr/bin/time -lp nice "
 
 """
 """
@@ -9,7 +9,7 @@ rule evaluate_bwa_alignments:
 		align="{work_dir}/{reference}/alignments/bwa/{dataset}.bam",
 		script="py-src/stats.py"
 	output:
-		"{work_dir}/{reference}/analysis/bwa/{dataset}_eval.txt"
+		"{work_dir}/{reference,[a-z0-9]+}/analysis/bwa/{dataset}_eval.txt"
 	run:
 		import stats
 		stats.compute_basic_bwa_stats(input.align, output[0])
@@ -21,7 +21,7 @@ Align reads using bwa mem
 rule align_reads_bwa:
 	input:
 		index="{work_dir}/{reference}/index/bwa/{reference}.ann",
-		reads="{work_dir}/{reference}/sampled/{dataset}.fa"
+		reads="{work_dir}/{reference,[a-z0-9]+}/sampled/{dataset}.fa"
 	params:
 		index="{work_dir}/{reference}/index/bwa/{reference}",
 	output:
@@ -32,7 +32,7 @@ rule align_reads_bwa:
 		"{work_dir}/{reference}/log/bwa/align_{dataset}.log"
 	params: K=config["K"]
 	shell:
-		"/usr/bin/time -lp bwa mem -t {threads} {params.index} {input.reads} 2> {log} | samtools view -Sb - > {output} "
+		TIME_CMD + "bwa mem -t {threads} {params.index} {input.reads} 2> {log} | samtools view -Sb - > {output} "
 
 
 """
@@ -51,5 +51,7 @@ rule build_bwa_index:
 		"{work_dir}/{reference}/index/bwa/{reference}.bwt",
 		"{work_dir}/{reference}/index/bwa/{reference}.pac",
 		"{work_dir}/{reference}/index/bwa/{reference}.sa"
+	log:
+		"{work_dir}/{reference}/index/bwa/build_index_{reference}.log"
 	shell:
-		"bwa index -p {params.dir} {input.ref}"
+		TIME_CMD + "bwa index -p {params.dir} {input.ref} > {log} 2>&1"
