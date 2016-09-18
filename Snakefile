@@ -55,7 +55,7 @@ rule get_text_template_for_main:
 
 
 # Make a comparison table for reads w/ mismatches
-rule make_comparison_table_nimbliner:
+rule make_comparison_table_for_aligner:
 	input:
 		evals=expand("{{work_dir}}/{{reference}}/k_{{K}}/analysis/nimbliner/sampled_{readlen}_{count}_m={mm_rate}pct_d={d_rate}pct_eval.txt",
 					zip,
@@ -71,21 +71,21 @@ rule make_comparison_table_nimbliner:
 		latex.write_table(input.evals, output[0])
 
 
-# Make a comparison table for reads w/ mismatches
-rule make_comparison_table_bwa:
-	input:
-		evals=expand("{{work_dir}}/{{reference}}/analysis/bwa/sampled_{readlen}_{count}_m={mm_rate}pct_d={d_rate}pct_eval.txt",
-					zip,
-					readlen=[100 for i in range(7)],
-					count=[1000 for i in range(7)],
-					mm_rate =[0, 0.5, 2.0, 3.0, 0.0, 0.0, 3.0],
-					d_rate	=[0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.2]),
-		script="py-src/latex.py"
-	output:
-		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table_all.tex"
-	run:
-		import latex
-		latex.write_table(input.evals, output[0])
+# # Make a comparison table for reads w/ mismatches
+# rule make_comparison_table_bwa:
+# 	input:
+# 		evals=expand("{{work_dir}}/{{reference}}/analysis/bwa/sampled_{readlen}_{count}_m={mm_rate}pct_d={d_rate}pct_eval.txt",
+# 					zip,
+# 					readlen=[100 for i in range(7)],
+# 					count=[1000 for i in range(7)],
+# 					mm_rate =[0, 0.5, 2.0, 3.0, 0.0, 0.0, 3.0],
+# 					d_rate	=[0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.2]),
+# 		script="py-src/latex.py"
+# 	output:
+# 		"{work_dir}/{reference}/k_{K}/plots/{method}_comparison_table_all.tex"
+# 	run:
+# 		import latex
+# 		latex.write_table(input.evals, output[0])
 
 
 # summarize performance results from the output and logs
@@ -141,7 +141,7 @@ rule build_index:
 # Compile if any of the input file have changed
 rule compile_aligner:
 	input:
-		"src/kmer_location.cpp",
+		"src/mapper.cpp",
 		"include/aligner.hpp",
 		"include/reference_index.hpp"
 	output:

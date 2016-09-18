@@ -3,6 +3,10 @@
 #ifndef JELLYFISH_LIB
 #define JELLYFISH_LIB
 
+#include <string>
+
+using namespace std;
+
 #define R -1
 #define I -2
 #define O -3

@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <chrono>
 
+#include <tclap/CmdLine.h>
+
 #include "FastaReader.h"
 #include "SeqBFUtil.hpp"
 
@@ -33,6 +35,37 @@ using namespace std;
 // 	return bf;
 // }
 
+struct input_parameters {
+	string input_fasta;
+	string input_anchors;
+	string input_index;
+	string output_path;
+	// TODO: embed this into the index so that user does not have to enter it
+	int K;		// kmer size to use (assumes this K was used in index)
+};
+
+input_parameters parse_arguments(const int argc, char * argv []) {
+	TCLAP::CmdLine cmd("Align reads faster and in less memory", ' ', "0.1");
+	TCLAP::ValueArg<std::string> input("i","input",
+		"Input reads (fasta or fastq)", true, "?", "string");
+	cmd.add( input );
+
+	TCLAP::ValueArg<std::string> output("o","output",
+		"Filename to write alignments to", false, "?", "string");
+	cmd.add( output );
+	cmd.parse( argc, argv );
+
+	// Get the value parsed by each arg. 
+	input_parameters ip;
+	ip.input_fasta = input.getValue();
+	// ip.input_anchors = anchors.getValue();
+	// ip.input_index = index.getValue();
+	ip.K = 20;
+	ip.output_path = output.getValue();
+
+	return ip;
+}
+
 ////////////////////////////////////////////////////////
 //
 // Improvements: 
@@ -44,6 +77,8 @@ using namespace std;
 //
 ////////////////////////////////////////////////////////
 int main(int argc, char * argv []) {
+	input_parameters ip = parse_arguments(argc, argv);
+
 	// string mode = argv[1];
 	int K = stoi(argv[1]);
 	string path = argv[2];

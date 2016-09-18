@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "BaseBloomFilter.hpp"
+// #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
 using namespace std;
@@ -49,6 +50,8 @@ class ReferenceIndex {
 		cerr << "reading kmers from " << path << endl;
 		auto start = std::chrono::system_clock::now();
 
+		vector<kmer_bin_t> all_kmers;
+
 		ifstream in(path);
 		if (!in) {
 			cerr << "[ERROR] Could not open the file: " << path << endl;
@@ -57,8 +60,7 @@ class ReferenceIndex {
 		string line;
 		getline(in, line);
 		uint64_t kmer_count = stol(line);
-		// cerr << "Expected kmer count: " << kmer_count << endl;
-		// BaseBloomFilter bf(K, kmer_count * 10);
+		cerr << "Expected kmer count: " << kmer_count << endl;
 		shared_ptr<BaseBloomFilter> bloom = shared_ptr<BaseBloomFilter>(new BaseBloomFilter(K, kmer_count * 10) );
 
 		static const auto BUFFER_SIZE = (size_t)pow(2,22); // do not overwhelm the stack :)
@@ -68,8 +70,8 @@ class ReferenceIndex {
 	    	cerr << "[ERROR] Could not open file: " << path << endl;
 	    	exit(1);
 	    }
-	 //    /* Advise the kernel of our access pattern.  */
-	 //    // posix_fadvise(fd, 0, 0, 1);  // FDADVICE_SEQUENTIAL
+	 	//    /* Advise the kernel of our access pattern.  */
+	 	//    // posix_fadvise(fd, 0, 0, 1);  // FDADVICE_SEQUENTIAL
 	    char buf[BUFFER_SIZE + 1];
 	    size_t i = 0, trailing = 0;
 	    size_t bytes_read = read(fd, buf, BUFFER_SIZE);
@@ -82,9 +84,9 @@ class ReferenceIndex {
 	        char *p = buf;
 	        trailing = 0;
 	        while ( (p - buf) < bytes_read) {
+	        	// find ends of lines
 	        	char * p_next = (char*) memchr(p, '\n', (buf + bytes_read) - p);
 	        	if (p_next == NULL) {
-
 	        		trailing = buf + bytes_read - p;
 	        		for (int j = 0; j < trailing; j++)
 	        			buf[j] = *(p + j);
@@ -95,7 +97,11 @@ class ReferenceIndex {
 		        		uint64_t bin_kmer = strtol(p, &p_next, 10);
 		        		// if (bytes_read < BUFFER_SIZE/2)
 		        			// cerr << (p - buf) << " " << bin_kmer << endl;
+		        		/*
+		        		Test: time the speen w/o adding stuff to BF
 		        		bloom->add(bin_kmer);
+		        		*/
+		        		all_kmers.push_back(bin_kmer);
 		        	}
 		        	p = p_next + 1;
 
@@ -114,7 +120,7 @@ class ReferenceIndex {
 	    }
 		close(fd);
 		cerr << endl << "read " << (i-1) << " kmers" << endl;
-		// cerr << "Trailing: " << trailing << " " << bytes_read << endl;
+		cerr << "Trailing: " << trailing << " " << bytes_read << endl;
 		if (i < kmer_count) {
 			cerr << "Expected: " << kmer_count << endl;
 			// exit(1);
@@ -123,6 +129,10 @@ class ReferenceIndex {
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
 		cerr << "reading kmers took: " << elapsed_seconds.count() << "s" << endl;
+
+		cerr << "sorting" << endl;
+		std::sort(all_kmers.begin(), all_kmers.end());
+
 		return bloom;
 	}
 
