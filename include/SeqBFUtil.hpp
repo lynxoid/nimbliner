@@ -172,7 +172,7 @@ unordered_set<kmer_t> getKmers(vector<string> & reads, const int K) {
             // if (i+K > r.size()) {
             //   cerr << i + K << endl;
             // }
-            kmer_t kmer_bin = mer_string_to_binary(&r[i], K);
+            kmer_t kmer_bin = nimble::mer_string_to_binary(&r[i], K);
             // kmers.insert( r.substr(i, K) );
             kmers.insert(kmer_bin);
         }
@@ -187,7 +187,7 @@ void getKmersAndEdgeKmers(vector<string> & reads, const int K, const unsigned ex
   for (auto r : reads) {
     if (r.size() < K) continue;
     for (size_t i = 0; i < r.size() - K + 1; i++) {
-      kmer_t kmer_bin = mer_string_to_binary(&r[i], K);
+      kmer_t kmer_bin = nimble::mer_string_to_binary(&r[i], K);
       kmers.insert(kmer_bin);
       if ( i < extend_len || i > r.size()-K-extend_len){
         edgeKmers.insert(kmer_bin);
@@ -203,7 +203,7 @@ void getNthKmersAndEdgeKmers(vector<string> & sequences, const int K, const unsi
   for (auto seq : sequences) {
     if (seq.size() < K) continue;
     for (size_t i = 0; i < seq.size() - K + 1; i++) {
-      kmer_t kmer_bin = mer_string_to_binary(&seq[i], K);
+      kmer_t kmer_bin = nimble::mer_string_to_binary(&seq[i], K);
       if(!(i%(skip_len+1))) // N+1th kmer
         kmers.insert(kmer_bin);
       if (i == 0 || i > seq.size()-K-skip_len){

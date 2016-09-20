@@ -7,7 +7,9 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <iostream>
+#include <boost/progress.hpp>
 
+#include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
 class ReferenceIndexBuilder {
@@ -54,7 +56,6 @@ class ReferenceIndexBuilder {
 		// write hte # of kmers to expect
 		all_kmers << kmer_locations.size() << endl;
 
-		// for (auto p : kmer_locations) {
 		int i = 0;
 		while (kmer_locations.size() > 0) {
 			auto it = kmer_locations.begin();
@@ -73,13 +74,41 @@ class ReferenceIndexBuilder {
 		kmer_locations.clear();
 	}
 
+	void write_bit_tree_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations,
+			const uint k) {
+		// dump to a vector
+		cerr << "dumping kmers into a vector" << endl;
+		boost::timer t;
+		shared_ptr<vector<kmer_t>> kmers = shared_ptr<vector<kmer_t>>(new vector<kmer_t>());
+		while (kmer_locations.size() != 0) {
+			auto it = kmer_locations.begin();
+			kmers->push_back(it->first);
+			kmer_locations.erase(it);
+		}
+		assert(kmer_locations.size() == 0);
+		t.restart();
+		cerr << "Sorting kmers" << endl;
+		std::sort(kmers->begin(), kmers->end() );
+		cerr << "Sorting took " << t.elapsed() << " s" << endl;
+		t.restart()
+		cerr << "encoding" << endl;
+		BitTreeBin bit_tree;
+		bit_tree.encode(kmers, k);
+		cerr << "encoding took " << t.elapsed() << " s" << endl;
+		t.restart();
+		cerr << "Writing to a binary file" << endl;
+		// bit_tree.write(input_file + ".btbin");
+		bit_tree.write("index.btbin");
+		cerr << "(" << t.elapsed() << " s)" << endl;
+	}
+
 public:
 	ReferenceIndexBuilder() {}
 
 	// given a path to the reference and a kmer length K, parse the reference
 	// fasta, obtain all kmers and select anchors using a heuristic
 	// write kmers to an *.index file and write anchors to *.star file.
-	void buildIndex(const string & ref_path, int K) {
+	void buildIndex(const string & ref_path, const uint K) {
 		auto chromosomes = parseFasta(ref_path);
 		// count kmers, record their locations
 		unordered_map<kmer_t, vector<genomic_coordinate_t>> kmer_locations;
@@ -91,7 +120,7 @@ public:
 		int c = 0;
 		cerr << "gathering all kmers... ";
 		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
-			kmer_t kmer = mer_string_to_binary(&chr[i], K);
+			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
 			if ( kmer_locations.find(kmer) == kmer_locations.end() ) {
 				kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
 			}
@@ -107,7 +136,8 @@ public:
 		cerr << "(" << star_kmers.size() << " anchors)" << endl;
 
 		write_anchors(star_kmers, kmer_locations);
-		write_index(kmer_locations);
+		// write_index(kmer_locations);
+		write_bit_tree_index(kmer_locations, K);
 		
 		return;
 	}

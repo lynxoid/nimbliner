@@ -7,33 +7,35 @@
 
 using namespace std;
 
-#define R -1
-#define I -2
-#define O -3
+namespace nimble {
+
+#define MER_R -1
+#define MER_I -2
+#define MER_O -3
 #define MER_A 0
-#define C 1
-#define G 2
+#define MER_C 1
+#define MER_G 2
 #define MER_T 3
 
 const char bases_to_bits[4] = {'A', 'C', 'G', 'T'};
 
 const char dna_codes[256] = {
-  O, O, O, O, O, O, O, O, O, O, I, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, R, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, MER_A, R, C, R, O, O, G, R, O, O, R, O, R, R, O,
-  O, O, R, R, MER_T, O, R, R, R, R, O, O, O, O, O, O,
-  O, MER_A, R, C, R, O, O, G, R, O, O, R, O, R, R, O,
-  O, O, R, R, MER_T, O, R, R, R, R, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_I, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_R, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_A, MER_R, MER_C, MER_R, MER_O, MER_O, MER_G, MER_R, MER_O, MER_O, MER_R, MER_O, MER_R, MER_R, MER_O,
+  MER_O, MER_O, MER_R, MER_R, MER_T, MER_O, MER_R, MER_R, MER_R, MER_R, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_A, MER_R, MER_C, MER_R, MER_O, MER_O, MER_G, MER_R, MER_O, MER_O, MER_R, MER_O, MER_R, MER_R, MER_O,
+  MER_O, MER_O, MER_R, MER_R, MER_T, MER_O, MER_R, MER_R, MER_R, MER_R, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O,
+  MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O, MER_O
 };
 
 
@@ -92,6 +94,8 @@ static string mer_binary_to_string(uint64_t mer, size_t klen) {
     mer >>= 2;
   }
   return out;
+}
+
 }
 
 #endif

@@ -60,9 +60,12 @@ int main(int argc, char * argv []) {
 		cerr << "k = " << k << endl;
 		if (unsorted) { // sort the little guys
 			cerr << "Sorting kmers" << endl;
+			{
+			boost::timer t;
 			std::sort(kmers->begin(), kmers->end());
+			cerr << "(" << t.elapsed() << " s)" << endl;
+			}
 		}
-
 
 		boost::timer t;
 		cerr << "encoding" << endl;

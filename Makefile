@@ -9,13 +9,13 @@ FLAGS=-O3 -std=c++11
 all: sample mapper indexer bit_tree
 
 indexer:
-	g++ $(FLAGS) -o $(BIN)/indexer $(SRC)/index_builder.cpp $(INCLUDE) $(LIB)
+	g++ $(FLAGS) -o $(BIN)/indexer $(SRC)/index_builder.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB)
 
 sample:
 	g++ $(FLAGS) -o $(BIN)/sample $(SRC)/sample_reads.cpp $(INCLUDE) $(LIB)
 
 mapper:
-	g++ $(FLAGS) -o $(BIN)/mapper $(SRC)/mapper.cpp $(INCLUDE) $(LIB) -lbf
+	g++ $(FLAGS) -o $(BIN)/mapper $(SRC)/mapper.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB) -lbf
 
 bit_tree:
 	g++ $(FLAGS) -o $(BIN)/bit_tree $(SRC)/bit_tree_binary.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB)

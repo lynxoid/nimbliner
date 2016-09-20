@@ -9,7 +9,7 @@
 // kmer type
 typedef uint64_t kmer_t;
 
-typedef kmer_t kmer_bin_t;
+typedef kmer_t bin_kmer_t;
 
 typedef int genomic_coordinate_t;
 

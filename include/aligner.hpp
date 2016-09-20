@@ -9,6 +9,8 @@
 #define ALIGNER
 
 #include "reference_index.hpp"
+// #include "bit_tree_index.hpp"
+// #include "bloom_reference_index.hpp"
 #include "definitions.hpp"
 
 void print_read(const kseq_t * seq) {
@@ -17,12 +19,12 @@ void print_read(const kseq_t * seq) {
 
 class Aligner {
 
-	ReferenceIndex _index;
+	shared_ptr<ReferenceIndex> _index;
 
     /*
      */
 	vector<genomic_coordinate_t> findAllMatchingAnchorPositions(const vector<pair<kmer_t,int>> & matched_stars, 
-		const ReferenceIndex & index) {
+		const shared_ptr<ReferenceIndex> index) {
 		assert(matched_stars.size() > 0);
 
         // cerr << "(";
@@ -39,11 +41,11 @@ class Aligner {
         // if (delta < 0)
 
         // locations are sorted in increasing order
-		auto A = index.get_anchor_locations(first_star.first);
+		auto A = index->get_anchor_locations(first_star.first);
         // cerr << "As ";
         // for (auto loc : A) cerr << loc << " ";
 
-		auto B = index.get_anchor_locations(second_star.first);
+		auto B = index->get_anchor_locations(second_star.first);
         // cerr << "Bs ";
         // for (auto loc : B) cerr << loc << " ";
 		int i = 0, j = 0;
@@ -91,12 +93,12 @@ class Aligner {
 		if (matched_stars.size() == 0) {
 			// need to extend the read until we hit some star
 			extend++;
-            cerr << endl;
+            // cerr << endl;
 		}
 		if (matched_stars.size() == 1) {
 			// that's the only thing we got going
 			// TODO: extend to find more stars
-			auto reference_locations = _index.get_anchor_locations(matched_stars[0].first);
+			auto reference_locations = _index->get_anchor_locations(matched_stars[0].first);
 			for (auto loc : reference_locations) {
                 mappings.push_back(loc - matched_stars[0].second);
                 // cerr << mappings.back() << endl;
@@ -126,7 +128,7 @@ class Aligner {
 		kmer_t mask = get_all_ones(K - 1);
         bin_kmer = (bin_kmer & mask) << 2;
         // append a new char on the right
-        bin_kmer = bin_kmer | (kmer_t)dna_codes[ next_base ];
+        bin_kmer = bin_kmer | (kmer_t)nimble::dna_codes[ next_base ];
         return bin_kmer;
 	}
 
@@ -138,13 +140,13 @@ class Aligner {
      */
     kmer_t handle_first_kmer(kmer_t bin_kmer, vector<bool> & matched_kmers, 
         vector<pair<kmer_t, int>> & matched_stars) {
-        if (_index.has_kmer(bin_kmer) ) {
+        if (_index->has_kmer(bin_kmer) ) {
             matched_kmers.push_back(1);
         }
         else {
             matched_kmers.push_back(0);
         }
-        if ( _index.has_anchor(bin_kmer) ) {
+        if ( _index->has_anchor(bin_kmer) ) {
             matched_stars.emplace_back(bin_kmer, 0);
         }
         return bin_kmer;
@@ -153,7 +155,7 @@ class Aligner {
     /* a kmer in the current read is not part of the reference as it is -- we will try permuting 
     the last base to see if an altered kmer is present in the reference. if it is, we will return 
     the base that worked through reference_base and correct the kmer and return it through bin_kmer */
-    bool is_mismatch(char * seq, const int pos, kmer_t bin_kmer, const ReferenceIndex & _index, 
+    bool is_mismatch(char * seq, const int pos, kmer_t bin_kmer, const shared_ptr<ReferenceIndex> _index, 
         char & reference_base, const int K, const vector<bool> & matches, const int L) {
         if ( !matches.back() ) return false;
         // for K=4 mask is 11111100 
@@ -162,7 +164,7 @@ class Aligner {
             // mask the last character
             bin_kmer = (bin_kmer & mask) | i;
             // cerr << "try " << mer_binary_to_string(bin_kmer, K) << " ";
-            if (_index.has_kmer(bin_kmer) ) {
+            if (_index->has_kmer(bin_kmer) ) {
                 // cerr << "YES ";
                 // is there a branch in de Buiijn graph that allows for the following kmer as well?
                 if (i + 1 >= L) {
@@ -174,10 +176,10 @@ class Aligner {
                     kmer_t next_kmer = bin_kmer;
                     next_kmer = get_next_kmer(next_kmer, seq[ pos + K + 1], K);
                     // cerr << "next kmer " <<  mer_binary_to_string(next_kmer, K) << " ";
-                    if (_index.has_kmer(next_kmer)) {
+                    if (_index->has_kmer(next_kmer)) {
                         // cerr << "also YES ";
                         // found a base that works
-                        reference_base = bases_to_bits[i];
+                        reference_base = nimble::bases_to_bits[i];
                         return true;
                     }
                     else {
@@ -196,9 +198,10 @@ class Aligner {
      *
      */
     vector<pair<kmer_t, int>> find_anchors(const kseq_t * seq, const short K, bool debug = true) {
-        if (debug)
-        cerr << "============================================================" << endl;
-        print_read(seq);
+        if (debug) {
+            cerr << "============================================================" << endl;
+            print_read(seq);
+        }
 
         vector<pair<kmer_t, int>> matched_stars;
         bool has_correction = false;
@@ -206,7 +209,7 @@ class Aligner {
         assert(L < 65536); // only allow reads shorter than 2^16. WHY? aug 13 2016
         vector<bool> matched_kmers;
 
-        kmer_t bin_kmer = mer_string_to_binary(seq->seq.s, K), bin_kmer_next;
+        kmer_t bin_kmer = nimble::mer_string_to_binary(seq->seq.s, K), bin_kmer_next;
         
         bin_kmer = handle_first_kmer(bin_kmer, matched_kmers, matched_stars);
         
@@ -221,7 +224,7 @@ class Aligner {
 
             // check if kmer is present in the reference -- if not, try to correct it assuming a 
             // mismatch first, indels second
-            if (_index.has_kmer(bin_kmer) ) {
+            if (_index->has_kmer(bin_kmer) ) {
                 // TODO: could be a FP -- reduce FP rate w/ cascading BF?
                 matched_kmers.push_back(1);
             }
@@ -249,14 +252,14 @@ class Aligner {
                     matched_kmers.push_back(1);
                     // correct the current kmer
                     kmer_t mask = get_all_ones(K-1) << 2;
-                    bin_kmer = (bin_kmer & mask ) | (kmer_t)dna_codes[reference_base];
+                    bin_kmer = (bin_kmer & mask ) | (kmer_t)nimble::dna_codes[reference_base];
                     // if (debug)
                     // cerr << "\tcorrected kmer " << mer_binary_to_string(bin_kmer, K) << " ";
                 }
-                cerr << endl;
+                // cerr << endl;
             }
             
-            if ( _index.has_anchor(bin_kmer) &&  matched_kmers.back() == 1 && 
+            if ( _index->has_anchor(bin_kmer) &&  matched_kmers.back() == 1 && 
                 matched_kmers[matched_kmers.size() - 2] == 1 ) {
                 // using i+1 since that makes it a 1-based coord system relative to read start
                 matched_stars.emplace_back(bin_kmer, i + 1);
@@ -281,7 +284,7 @@ class Aligner {
 
 public:
 
-	Aligner(const ReferenceIndex & index) {
+	Aligner(const shared_ptr<ReferenceIndex> index) {
 		_index = index;
 	}
 
@@ -303,7 +306,7 @@ public:
 	        	continue;
 	        }
 
-            vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K);
+            vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, debug);
 	        // DEBUG info
             if (debug) {
 	        cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
@@ -318,7 +321,7 @@ public:
             auto start = std::chrono::system_clock::now();
 			auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
             auto end = std::chrono::system_clock::now();
-            cerr << endl;
+            if (debug) cerr << endl;
 
 			// output all potential locations for this read
             // TODO: generate CIGAR strings and all

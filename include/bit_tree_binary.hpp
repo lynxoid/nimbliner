@@ -4,6 +4,8 @@
 
 #include <vector>
 #include <stack>
+#include <unordered_map>
+#include <fstream>
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/progress.hpp>
@@ -26,8 +28,12 @@ size_t getFileLength(ifstream & stream) {
 
 class BitTreeBin {
 private:
-	// contain binary data about the BitTree
+	// contains binary data about the BitTree
 	shared_ptr<boost::dynamic_bitset<>> bitstream;
+
+	unordered_map<bin_kmer_t, size_t> dmer_index;
+
+	uint D = 0;
 
 	// kmer size
 	int k = 0;
@@ -120,7 +126,7 @@ public:
 	shared_ptr<vector<kmer_type>> decode() {
 		shared_ptr<vector<kmer_type>> kmers(new vector<kmer_type>());
 		
-		// skip the first 1
+		// skip the first 1 -- it is the root
 		size_t index = bitstream->find_first() + 1;
 		// string alphabet = "ACGT";
 		
@@ -128,14 +134,16 @@ public:
 		int depth = 0;
 		bin_kmer_t prefix = 0;
 		// put branches index on stack as we go down the tree, pop as we go back up the tree
+		// keep track of unexplored branches
 		stack<int> branches;
 
 		while (index < bitstream->size() ) {
 			// cerr << (*bitstream)[index] << " ";
-			if ( (*bitstream)[index] ) {
+			if ( (*bitstream)[index] ) { // current bit is 1
 				prefix = (prefix << 2) | branch;
-				if (depth == (k-1) ) {
-					kmers->push_back(prefix);
+				if (depth == (k-1) ) { // reached a leaf
+					kmers->push_back(prefix); // prefix is a decoded kmer
+					// output some stats
 					if (kmers->size() % 1000000 == 0) cerr << kmers->size() << " ";
 					prefix = prefix >> 2;
 					
@@ -148,33 +156,24 @@ public:
 						branch++;
 				}
 				else {
-					branches.push(branch);
-					branch = 0;
+					branches.push(branch); // remember the current branch
+					branch = 0; // start from branch A at the next level
 					depth++;
 				}
 			}
-			else {
+			else { // current bit is 0
 				while (branch >= 3 && !branches.empty()) {
 					depth--;
 					branch = branches.top(); branches.pop();
 					prefix = prefix >> 2;
 				}
-				if (branch < 3)
+				if (branch < 3) //skip to the next branch
 					branch++;
 			}
-			index++;
+			index++; // move to the next bit
 		}
 		// cerr << endl;
 		return kmers;
-	}
-
-	/* returns True if the bit_tree (a set) contains the kmers, otherwise 
-	returns False. Computes the answer in O(L) where L is the length of the query
-	(kmer size) */
-	bool contains(const bin_kmer_t bin_kmer) {
-		// compute offset into the stream to query for the first letter, and so on
-		// computation of ranges over a bit stream
-		return false;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -213,6 +212,8 @@ public:
 		shared_ptr<boost::dynamic_bitset<>> bitstream(new boost::dynamic_bitset<>());
 		// add buffer[1:] to the bitstream
 		auto bytes_per_block = sizeof(boost::dynamic_bitset<>::block_type);
+		cerr << "Reading bit tree at " << bytes_per_block << "bytes per block" 
+			<< endl;
 		auto num_blocks = (fsize - 1) / bytes_per_block;
 		// cerr << num_blocks << endl;
 		boost::dynamic_bitset<>::block_type block;
@@ -222,6 +223,139 @@ public:
 		}
 		this->bitstream = bitstream;
 		this->k = k;
+	}
+
+	/*
+	 * build an index -- an offset to the bitstream for every D-mer we observe 
+	 * in the kmer set. Store the index in a hash map of (5mer, index) pairs
+	 */
+	void build_index(const uint D) {
+		this->D = D;
+		dmer_index.clear();
+
+		// skip the first 1 -- it is the root
+		size_t index = bitstream->find_first() + 1;
+		// string alphabet = "ACGT";
+		
+		bin_kmer_t branch = 0;
+		int depth = 0;
+		bin_kmer_t prefix = 0;
+		// put branches index on stack as we go down the tree, pop as we go back up the tree
+		// keep track of unexplored branches
+		stack<int> branches;
+
+		while (index < bitstream->size() ) {
+			// cerr << (*bitstream)[index] << " ";
+			if ( (*bitstream)[index] ) { // current bit is 1
+				prefix = (prefix << 2) | branch;
+				if (depth == (D-1) ) { // reached level D
+					dmer_index.emplace(prefix, index);
+					prefix = prefix >> 2;
+					
+					while (branch >= 3 && !branches.empty()) {
+							depth--;
+							branch = branches.top(); branches.pop();
+							prefix = prefix >> 2;
+					}
+					if (branch < 3)
+						branch++;
+				}
+				else {
+					branches.push(branch); // remember the current branch
+					branch = 0; // start from branch A at the next level
+					depth++;
+				}
+			}
+			else { // current bit is 0
+				while (branch >= 3 && !branches.empty()) {
+					depth--;
+					branch = branches.top(); branches.pop();
+					prefix = prefix >> 2;
+				}
+				if (branch < 3) //skip to the next branch
+					branch++;
+			}
+			index++; // move to the next bit
+		}
+		cerr << "created an index into the bit tree w/ " << dmer_index.size() <<
+			" elements (max elements: " << pow(4, D) << ")" << endl;
+	}
+
+	/* 
+	 * returns True if the bit_tree (a set) contains the kmers, otherwise 
+	 * returns False. Computes the answer in O(L) where L is the length of the 
+	 * query (kmer size) 
+	 */
+	bool contains(const bin_kmer_t query) {
+		// compute offset into the stream to query for the first D letters
+		bin_kmer_t prefix = query >> ( (k - D) * 2 );
+		auto it = dmer_index.find(prefix);
+		if (it == dmer_index.end() ) // prefix does not exist
+			return false;
+		size_t index = it->second;
+
+		////////////////////////////////////////////////////////
+		// now traverse the subtree starting at index to see if kmer is there
+		////////////////////////////////////////////////////////
+		
+		bin_kmer_t branch = 0;
+		// depth is 0-based, while D is 1-based. here we are at depth D+1 -- one
+		// longer than prefix
+		int depth = D; 
+		// put branches index on stack as we go down the tree, pop as we go back
+		// up the tree keep track of unexplored branches
+		stack<int> branches;
+
+		while (index < bitstream->size() ) {
+			// cerr << (*bitstream)[index] << " ";
+			if ( (*bitstream)[index] ) { // current bit is 1
+				prefix = (prefix << 2) | branch; // branch is always 0 here
+				if (depth == (k - 1) ) { // reached level K
+					if (prefix == query)
+						return true;
+					// else: reached a leaf, but did not leave the subtree that
+					// may have the query
+					// continue exploring the subtrees
+					prefix = prefix >> 2; // up one level
+					
+					while (branch >= 3 && !branches.empty()) {
+							depth--;
+							// if (depth < D) return false;
+							branch = branches.top(); branches.pop();
+							prefix = prefix >> 2;
+					}
+					if (branch < 3)
+						branch++;
+					// did we go past the query already?
+					bin_kmer_t query_i = (query >> ( (k - depth) * 2) ) & (bin_kmer_t)3;
+					if (branch > query_i )
+						return false;
+				}
+				else {
+					branches.push(branch); // remember the current branch
+					branch = 0; // start from branch A at the next level
+					depth++;
+				}
+			}
+			else { // current bit is 0
+				while (branch >= 3 && !branches.empty()) {
+					depth--;
+					// if (depth < D) return false;
+					branch = branches.top(); branches.pop();
+					prefix = prefix >> 2;
+				}
+				if (branch < 3) //skip to the next branch
+					branch++;
+				// check if we already went past our query
+				// if symbol at query[i] < branch -- symbol is not in the tree
+				// compute symbol at query[i] in its binary form
+				bin_kmer_t query_i = (query >> ( (k - depth) * 2) ) & (bin_kmer_t)3;
+				if (branch > query_i )
+					return false;
+			}
+			index++; // move to the next bit
+		}
+		return false;
 	}
 
 };
