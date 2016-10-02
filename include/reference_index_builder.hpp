@@ -7,9 +7,8 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <iostream>
-#include <boost/progress.hpp>
 
-#include "bit_tree_binary.hpp"
+// #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
 class ReferenceIndexBuilder {
@@ -46,7 +45,6 @@ class ReferenceIndexBuilder {
 	}
 
 	/*
-	 * TODO: can use the BitTree to read/write these
 	 */
 	void write_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
 		cerr << "saving all kmers" << endl;
@@ -136,7 +134,9 @@ public:
 		cerr << "(" << star_kmers.size() << " anchors)" << endl;
 
 		write_anchors(star_kmers, kmer_locations);
+		// switch between different implementations of the index
 		// write_index(kmer_locations);
+		// bit tree representation will take less space
 		write_bit_tree_index(kmer_locations, K);
 		
 		return;

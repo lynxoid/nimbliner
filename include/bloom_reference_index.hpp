@@ -64,7 +64,8 @@ class BloomReferenceIndex : public ReferenceIndex {
 		getline(in, line);
 		uint64_t kmer_count = stol(line);
 		cerr << "Expected kmer count: " << kmer_count << endl;
-		shared_ptr<BaseBloomFilter> bloom = shared_ptr<BaseBloomFilter>(new BaseBloomFilter(K, kmer_count * 10) );
+		shared_ptr<BaseBloomFilter> bloom = 
+			shared_ptr<BaseBloomFilter>(new BaseBloomFilter(K, (size_t)(kmer_count * 10) ) );
 
 		static const auto BUFFER_SIZE = (size_t)pow(2,22); // do not overwhelm the stack :)
 		// cerr << "Buffer size, bytes: " << BUFFER_SIZE << endl;

@@ -9,8 +9,6 @@
 #define ALIGNER
 
 #include "reference_index.hpp"
-// #include "bit_tree_index.hpp"
-// #include "bloom_reference_index.hpp"
 #include "definitions.hpp"
 
 void print_read(const kseq_t * seq) {
@@ -19,101 +17,101 @@ void print_read(const kseq_t * seq) {
 
 class Aligner {
 
-	shared_ptr<ReferenceIndex> _index;
+  shared_ptr<ReferenceIndex> _index;
 
     /*
      */
-	vector<genomic_coordinate_t> findAllMatchingAnchorPositions(const vector<pair<kmer_t,int>> & matched_stars, 
-		const shared_ptr<ReferenceIndex> index) {
-		assert(matched_stars.size() > 0);
+  vector<genomic_coordinate_t> findAllMatchingAnchorPositions(const vector<pair<kmer_t,int>> & matched_stars,
+    const shared_ptr<ReferenceIndex> index) {
+    assert(matched_stars.size() > 0);
 
         // cerr << "(";
         // for (auto & star : matched_stars)
         //     cerr << star.second << " ";
         // cerr << ") ";
 
-		vector<genomic_coordinate_t> mappings;
-		auto first_star = matched_stars[0];
-		auto second_star = matched_stars[1];
+    vector<genomic_coordinate_t> mappings;
+    auto first_star = matched_stars[0];
+    auto second_star = matched_stars[1];
         // TODO: why +1 here? are matched_stars locations incorrect?
-		int delta = second_star.second - first_star.second;
+    int delta = second_star.second - first_star.second;
         // cerr << "delta=" << delta << " ";
         // if (delta < 0)
 
         // locations are sorted in increasing order
-		auto A = index->get_anchor_locations(first_star.first);
+    auto A = index->get_anchor_locations(first_star.first);
         // cerr << "As ";
         // for (auto loc : A) cerr << loc << " ";
 
-		auto B = index->get_anchor_locations(second_star.first);
+    auto B = index->get_anchor_locations(second_star.first);
         // cerr << "Bs ";
         // for (auto loc : B) cerr << loc << " ";
-		int i = 0, j = 0;
-		while (i < A.size() && j < B.size() ) {
-			if (A[i] < B[j]) {
-				if (B[j] - A[i] == delta) {
-					// found a match
+    int i = 0, j = 0;
+    while (i < A.size() && j < B.size() ) {
+      if (A[i] < B[j]) {
+        if (B[j] - A[i] == delta) {
+          // found a match
                     if (A[i] < first_star.second) {
                         cerr << "ERR:" << A[i] << " " << first_star.second << " " << second_star.second << endl;
                     }
-					mappings.push_back(A[i] - first_star.second);
-					i++;
-					j++;
-				} 
-				else if (B[j] - A[i] < delta) {
-					j++;
-				}
-				else {
-					i++;
-				}
-			}
-			else {
-				j++;
-			}
-		}
+          mappings.push_back(A[i] - first_star.second);
+          i++;
+          j++;
+        }
+        else if (B[j] - A[i] < delta) {
+          j++;
+        }
+        else {
+          i++;
+        }
+      }
+      else {
+        j++;
+      }
+    }
         // cerr << " | " << mappings.size() << " ";
-		return mappings;
-	}
+    return mappings;
+  }
 
-	////////////////////////////////////////////////////////
-	//	matched_stars -- in order in which they appear in the read
-	//	resolve which of the star co-locations are the same distance
-	//	apart as the stars in the read
-	//  0123456789
-	//	--***-***-
-	//
-	////////////////////////////////////////////////////////
-	vector<genomic_coordinate_t> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars, 
-		// unordered_map<kmer_t, vector<int>> & star_locations,
-		int & extend,
+  ////////////////////////////////////////////////////////
+  //  matched_stars -- in order in which they appear in the read
+  //  resolve which of the star co-locations are the same distance
+  //  apart as the stars in the read
+  //  0123456789
+  //  --***-***-
+  //
+  ////////////////////////////////////////////////////////
+  vector<genomic_coordinate_t> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars,
+    // unordered_map<kmer_t, vector<int>> & star_locations,
+    int & extend,
         const int K) {
-		vector<genomic_coordinate_t> mappings;
+    vector<genomic_coordinate_t> mappings;
 
-		// what if no stars mapped?
-		if (matched_stars.size() == 0) {
-			// need to extend the read until we hit some star
-			extend++;
+    // what if no stars mapped?
+    if (matched_stars.size() == 0) {
+      // need to extend the read until we hit some star
+      extend++;
             // cerr << endl;
-		}
-		if (matched_stars.size() == 1) {
-			// that's the only thing we got going
-			// TODO: extend to find more stars
-			auto reference_locations = _index->get_anchor_locations(matched_stars[0].first);
-			for (auto loc : reference_locations) {
+    }
+    if (matched_stars.size() == 1) {
+      // that's the only thing we got going
+      // TODO: extend to find more stars
+      auto reference_locations = _index->get_anchor_locations(matched_stars[0].first);
+      for (auto loc : reference_locations) {
                 mappings.push_back(loc - matched_stars[0].second);
                 // cerr << mappings.back() << endl;
             }
-		}
-		else if (matched_stars.size() >= 2) {
-			// if two stars	or more
-			// TODO: take into account all the stars
-			mappings = findAllMatchingAnchorPositions(matched_stars, _index);
+    }
+    else if (matched_stars.size() >= 2) {
+      // if two stars  or more
+      // TODO: take into account all the stars
+      mappings = findAllMatchingAnchorPositions(matched_stars, _index);
             // for (auto p : mappings) cerr << p << " ";
             // cerr << endl;
-		}
+    }
 
-		return mappings;
-	}
+    return mappings;
+  }
 
     /* return a 64-bit binary value that has 1nes for the 2K rightmost bits */
     kmer_t get_all_ones(const int K) {
@@ -123,14 +121,14 @@ class Aligner {
     /*
      *
      */
-	kmer_t get_next_kmer(kmer_t bin_kmer, const char next_base, const short K) {
+  kmer_t get_next_kmer(kmer_t bin_kmer, const char next_base, const short K) {
         // mask is all ones
-		kmer_t mask = get_all_ones(K - 1);
+    kmer_t mask = get_all_ones(K - 1);
         bin_kmer = (bin_kmer & mask) << 2;
         // append a new char on the right
         bin_kmer = bin_kmer | (kmer_t)nimble::dna_codes[ next_base ];
         return bin_kmer;
-	}
+  }
 
     /*
      * // cerr << "considering " << mer_binary_to_string(bin_kmer, K) << " ";
@@ -138,7 +136,7 @@ class Aligner {
         // TODO: clipping
         // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
      */
-    kmer_t handle_first_kmer(kmer_t bin_kmer, vector<bool> & matched_kmers, 
+    kmer_t handle_first_kmer(kmer_t bin_kmer, vector<bool> & matched_kmers,
         vector<pair<kmer_t, int>> & matched_stars) {
         if (_index->has_kmer(bin_kmer) ) {
             matched_kmers.push_back(1);
@@ -152,13 +150,13 @@ class Aligner {
         return bin_kmer;
     }
 
-    /* a kmer in the current read is not part of the reference as it is -- we will try permuting 
-    the last base to see if an altered kmer is present in the reference. if it is, we will return 
+    /* a kmer in the current read is not part of the reference as it is -- we will try permuting
+    the last base to see if an altered kmer is present in the reference. if it is, we will return
     the base that worked through reference_base and correct the kmer and return it through bin_kmer */
-    bool is_mismatch(char * seq, const int pos, kmer_t bin_kmer, const shared_ptr<ReferenceIndex> _index, 
+    bool is_mismatch(char * seq, const int pos, kmer_t bin_kmer, const shared_ptr<ReferenceIndex> _index,
         char & reference_base, const int K, const vector<bool> & matches, const int L) {
         if ( !matches.back() ) return false;
-        // for K=4 mask is 11111100 
+        // for K=4 mask is 11111100
         kmer_t mask = get_all_ones(K - 1) << 2;
         for (kmer_t i = 0; i < 4; i++) {// 0 - A, 1 - C, 2 - G, 3 - T
             // mask the last character
@@ -185,7 +183,7 @@ class Aligner {
                     else {
                         // cerr << "next !in_ref ";
                     }
-                }                
+                }
             }
             else {
                 // cerr << "- NO, ";
@@ -210,19 +208,19 @@ class Aligner {
         vector<bool> matched_kmers;
 
         kmer_t bin_kmer = nimble::mer_string_to_binary(seq->seq.s, K), bin_kmer_next;
-        
+
         bin_kmer = handle_first_kmer(bin_kmer, matched_kmers, matched_stars);
-        
+
         int i = 0;
         // now go through the rest of the read
         while (i + 1 < L) {
             // update prev kmer, mask the leftmost character
             bin_kmer = get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
-            
+
             // if (debug)
             // cerr << "i=" << i << " 0-coord: " << i+1 << " " << mer_binary_to_string(bin_kmer, K) << " ";
 
-            // check if kmer is present in the reference -- if not, try to correct it assuming a 
+            // check if kmer is present in the reference -- if not, try to correct it assuming a
             // mismatch first, indels second
             if (_index->has_kmer(bin_kmer) ) {
                 // TODO: could be a FP -- reduce FP rate w/ cascading BF?
@@ -258,8 +256,8 @@ class Aligner {
                 }
                 // cerr << endl;
             }
-            
-            if ( _index->has_anchor(bin_kmer) &&  matched_kmers.back() == 1 && 
+
+            if ( _index->has_anchor(bin_kmer) &&  matched_kmers.back() == 1 &&
                 matched_kmers[matched_kmers.size() - 2] == 1 ) {
                 // using i+1 since that makes it a 1-based coord system relative to read start
                 matched_stars.emplace_back(bin_kmer, i + 1);
@@ -276,7 +274,7 @@ class Aligner {
             for (auto b : matched_kmers) cerr << b;
             cerr << endl;
         }
-        
+
         // if (has_correction) exit(1);
 
         return matched_stars;
@@ -284,60 +282,62 @@ class Aligner {
 
 public:
 
-	Aligner(const shared_ptr<ReferenceIndex> index) {
-		_index = index;
-	}
+  Aligner(const shared_ptr<ReferenceIndex> index) {
+    _index = index;
+  }
 
-	////////////////////////////////////////////////////////
-	//
-	////////////////////////////////////////////////////////
-	void alignReads(const string & path, const int K, bool debug = true) {
-		FastaReader fr(path.c_str());
-	    kseq_t * seq;
-	    int passed_cutoff = 0;
-	    int read_count = 0;
-	    int need_to_extend_read = 0;
+  ////////////////////////////////////////////////////////
+  //
+  ////////////////////////////////////////////////////////
+  void alignReads(const string & path, const int K, bool debug = false) {
+    FastaReader fr(path.c_str());
+    kseq_t * seq;
+    int passed_cutoff = 0;
+    int read_count = 0;
+    int need_to_extend_read = 0;
 
-	    std::chrono::duration<double> elapsed_seconds_str;
-	    while ( (seq = fr.nextSequence() ) ) {
-	    	read_count++;
-	    	if (read_count % 100000 == 0) cerr << read_count / 100000 << "00K ";
-	        if (seq->seq.l < K) {
-	        	continue;
-	        }
+    std::chrono::duration<double> elapsed_seconds_str;
+    while ( (seq = fr.nextSequence() ) ) {
+      read_count++;
+      if (read_count % 100000 == 0)
+        cerr << read_count / 100000 << "00K ";
+      if (seq->seq.l < K) {
+        continue;
+      }
 
-            vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, debug);
-	        // DEBUG info
-            if (debug) {
-	        cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
-                // print anchor positions
-                for (auto& p : matched_stars) {
-                    cerr << p.second << ",";
-                }
-                cerr << " ";
-            }
-			
-			// resolve star kmers to get an exact mapping location
-            auto start = std::chrono::system_clock::now();
-			auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
-            auto end = std::chrono::system_clock::now();
-            if (debug) cerr << endl;
+      auto start = std::chrono::system_clock::now();
+      vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, debug);
+      // DEBUG info
+      if (debug) {
+        cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
+        // print anchor positions
+        for (auto& p : matched_stars) {
+            cerr << p.second << ",";
+        }
+        cerr << " ";
+      }
 
-			// output all potential locations for this read
-            // TODO: generate CIGAR strings and all
-			cout << seq->name.s << "\t";
-			for (const auto & loc : mapping_locations) {
-				cout << loc << " ";
-			}
-			cout << endl;
-			
-			elapsed_seconds_str += end - start;
-	    }
-	    cerr << "Resolving ops: " << elapsed_seconds_str.count() << "s" << endl;
-	    // cerr << "String ops: " << elapsed_seconds_str.count() << "s" << endl;
-	    // cerr << "Passed 45% cutoff: " << passed_cutoff << endl;
-	    cerr << "Times needed to extend the read: " << need_to_extend_read << endl;
-	}	
+      // resolve star kmers to get an exact mapping location
+      // auto midway = std::chrono::system_clock::now();
+      auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
+      auto end = std::chrono::system_clock::now();
+      if (debug) cerr << endl;
+
+      // output all potential locations for this read
+      // TODO: generate CIGAR strings and all
+      /*
+      cout << seq->name.s << "\t";
+      for (const auto & loc : mapping_locations) {
+        cout << loc << " ";
+      }
+      cout << endl;
+      */
+
+      elapsed_seconds_str += end - start;
+    }
+    cerr << "Computing alignments (no IO): " << elapsed_seconds_str.count() << "s" << endl;
+    cerr << "Times needed to extend the read: " << need_to_extend_read << endl;
+  }
 };
 
 #endif
