@@ -37,12 +37,12 @@ public:
 	}
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */
-	bool has_kmer(const bin_kmer_t & kmer) const {
+	bool has_kmer(const bin_kmer_t kmer) const {
 		return _bit_tree->contains(kmer);
 	}
 
 	/* returns true is this kmer is found among anchors, false otherwise*/
-	bool has_anchor(const bin_kmer_t & kmer) const {
+	bool is_anchor(const bin_kmer_t kmer) const {
 		return _stars->find(kmer) != _stars->end();
 	}
 

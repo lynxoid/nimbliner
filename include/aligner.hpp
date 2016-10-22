@@ -8,6 +8,7 @@
 #ifndef ALIGNER
 #define ALIGNER
 
+#include "bloom_reference_index.hpp"
 #include "reference_index.hpp"
 #include "definitions.hpp"
 
@@ -281,7 +282,11 @@ class Aligner {
         return matched_stars;
     }
 
-    void align_single_read(const kseq_t * seq, const int K, const bool DEBUG) {
+    /*
+     * Find potential seeds for this read, extend the alignments, and produce
+     * cigar strings, etc
+     */
+    vector<genomic_coordinate_t> align_single_read(const kseq_t * seq, const int K, const bool DEBUG) {
         vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, DEBUG);
         // DEBUG info
         if (DEBUG) {
@@ -313,10 +318,6 @@ public:
     Aligner(const shared_ptr<ReferenceIndex> index) {
         _index = index;
     }
-
-  // Aligner(const shared_ptr<BloomReferenceIndex> index) {
-  //   _index = index;
-  // }
 
   ////////////////////////////////////////////////////////
   //

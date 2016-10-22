@@ -7,8 +7,12 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <iostream>
+#include <memory>
+#include <algorithm>
 
-// #include "bit_tree_binary.hpp"
+#include <boost/timer.hpp>
+
+#include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
 class ReferenceIndexBuilder {
@@ -68,7 +72,6 @@ class ReferenceIndexBuilder {
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds_str = end - start;
 	    cerr << "Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
-		
 		kmer_locations.clear();
 	}
 
@@ -88,7 +91,7 @@ class ReferenceIndexBuilder {
 		cerr << "Sorting kmers" << endl;
 		std::sort(kmers->begin(), kmers->end() );
 		cerr << "Sorting took " << t.elapsed() << " s" << endl;
-		t.restart()
+		t.restart();
 		cerr << "encoding" << endl;
 		BitTreeBin bit_tree;
 		bit_tree.encode(kmers, k);
@@ -138,7 +141,6 @@ public:
 		// write_index(kmer_locations);
 		// bit tree representation will take less space
 		write_bit_tree_index(kmer_locations, K);
-		
 		return;
 	}
 };
