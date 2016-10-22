@@ -17,8 +17,8 @@ void print_read(const kseq_t * seq) {
 
 class Aligner {
 
-  // shared_ptr<ReferenceIndex> _index;
-  shared_ptr<BloomReferenceIndex> _index;
+  shared_ptr<ReferenceIndex> _index;
+  // shared_ptr<BloomReferenceIndex> _index;
 
     /*
      */
@@ -114,14 +114,14 @@ class Aligner {
     return mappings;
   }
 
-    /* return a 64-bit binary value that has 1nes for the 2K rightmost bits */
-    kmer_t get_all_ones(const int K) {
-        return ( ((kmer_t)1) << ( 2 * K ) ) - (kmer_t)1;
-    }
+  /* return a 64-bit binary value that has 1nes for the 2K rightmost bits */
+  kmer_t get_all_ones(const int K) {
+      return ( ((kmer_t)1) << ( 2 * K ) ) - (kmer_t)1;
+  }
 
-    /*
-     *
-     */
+  /*
+   *
+   */
   kmer_t get_next_kmer(kmer_t bin_kmer, const char next_base, const short K) {
         // mask is all ones
     kmer_t mask = get_all_ones(K - 1);
@@ -131,25 +131,25 @@ class Aligner {
         return bin_kmer;
   }
 
-    /*
-     * // cerr << "considering " << mer_binary_to_string(bin_kmer, K) << " ";
-        // should deal w/ ends separately -- may need to trim or skip low-quality ends
-        // TODO: clipping
-        // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
-     */
-    kmer_t handle_first_kmer(kmer_t bin_kmer, vector<bool> & matched_kmers,
-        vector<pair<kmer_t, int>> & matched_stars) {
-        if (_index->has_kmer(bin_kmer) ) {
-            matched_kmers.push_back(1);
-        }
-        else {
-            matched_kmers.push_back(0);
-        }
-        if ( _index->is_anchor(bin_kmer) ) {
-            matched_stars.emplace_back(bin_kmer, 0);
-        }
-        return bin_kmer;
-    }
+  /*
+   * // cerr << "considering " << mer_binary_to_string(bin_kmer, K) << " ";
+      // should deal w/ ends separately -- may need to trim or skip low-quality ends
+      // TODO: clipping
+      // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
+   */
+  kmer_t handle_first_kmer(kmer_t bin_kmer, vector<bool> & matched_kmers,
+      vector<pair<kmer_t, int>> & matched_stars) {
+      if (_index->has_kmer(bin_kmer) ) {
+          matched_kmers.push_back(1);
+      }
+      else {
+          matched_kmers.push_back(0);
+      }
+      if ( _index->is_anchor(bin_kmer) ) {
+          matched_stars.emplace_back(bin_kmer, 0);
+      }
+      return bin_kmer;
+  }
 
     /* a kmer in the current read is not part of the reference as it is -- we will try permuting
     the last base to see if an altered kmer is present in the reference. if it is, we will return
@@ -281,15 +281,42 @@ class Aligner {
         return matched_stars;
     }
 
+    void align_single_read(const kseq_t * seq, const int K, const bool DEBUG) {
+        vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, DEBUG);
+        // DEBUG info
+        if (DEBUG) {
+              cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
+              // print anchor positions
+              for (auto& p : matched_stars) {
+                  cerr << p.second << ",";
+              }
+              cerr << " ";
+        }
+
+        // resolve star kmers to get an exact mapping location
+        auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
+        // output all potential locations for this read
+        // TODO: generate CIGAR strings and all
+        /*
+        cout << seq->name.s << "\t";
+        for (const auto & loc : mapping_locations) {
+          cout << loc << " ";
+        }
+        cout << endl;
+        */
+        if (DEBUG) cerr << endl;
+        return mapping_locations;
+    }
+
 public:
 
-  // Aligner(const shared_ptr<ReferenceIndex> index) {
+    Aligner(const shared_ptr<ReferenceIndex> index) {
+        _index = index;
+    }
+
+  // Aligner(const shared_ptr<BloomReferenceIndex> index) {
   //   _index = index;
   // }
-
-  Aligner(const shared_ptr<BloomReferenceIndex> index) {
-    _index = index;
-  }
 
   ////////////////////////////////////////////////////////
   //
@@ -309,35 +336,9 @@ public:
       if (seq->seq.l < K) {
         continue;
       }
-
       auto start = std::chrono::system_clock::now();
-      vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, debug);
-      // DEBUG info
-      if (debug) {
-        cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
-        // print anchor positions
-        for (auto& p : matched_stars) {
-            cerr << p.second << ",";
-        }
-        cerr << " ";
-      }
-
-      // resolve star kmers to get an exact mapping location
-      // auto midway = std::chrono::system_clock::now();
-      auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
+      align_single_read(seq, K, debug);
       auto end = std::chrono::system_clock::now();
-      if (debug) cerr << endl;
-
-      // output all potential locations for this read
-      // TODO: generate CIGAR strings and all
-      /*
-      cout << seq->name.s << "\t";
-      for (const auto & loc : mapping_locations) {
-        cout << loc << " ";
-      }
-      cout << endl;
-      */
-
       elapsed_seconds_str += end - start;
     }
     cerr << "Computing alignments (no IO): " << elapsed_seconds_str.count() << "s" << endl;

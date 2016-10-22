@@ -5,9 +5,10 @@ MAINTAINER dasha.filippova@gmail.com
 RUN apt-get update && apt-get install -y wget \
   build-essential \
   zlib1g-dev \
-  cmake
+  cmake \
+  valgrind
 
-# RUN which g++ && g++ --version
+RUN apt-get install -y valgrind
 
 # install tclap
 RUN wget https://sourceforge.net/projects/tclap/files/tclap-1.2.1.tar.gz && \
@@ -21,14 +22,6 @@ RUN wget https://github.com/mavam/libbf/archive/v0.1-beta.tar.gz && \
   cd libbf-0.1-beta && \
   ./configure && make && make install
 
-# install gperftools
-RUN apt-get install -y dh-autoreconf
-
-# install vailgrind for profiling
-# RUN wget -nv http://valgrind.org/downloads/valgrind-3.11.0.tar.bz2 && \
-#    tar -xjf valgrind-3.11.0.tar.bz2 && cd valgrind-3.11.0 && \
-#    ./configure && make && make install
-RUN apt-get install -y valgrind
 
 ENV LD_LIBRARY_PATH /usr/local/lib/
 
