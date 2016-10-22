@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <iostream>
+#include <memory>
+#include <algorithm>
 
 // #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
@@ -68,7 +70,6 @@ class ReferenceIndexBuilder {
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds_str = end - start;
 	    cerr << "Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
-		
 		kmer_locations.clear();
 	}
 
@@ -76,7 +77,7 @@ class ReferenceIndexBuilder {
 			const uint k) {
 		// dump to a vector
 		cerr << "dumping kmers into a vector" << endl;
-		boost::timer t;
+		//boost::timer t;
 		shared_ptr<vector<kmer_t>> kmers = shared_ptr<vector<kmer_t>>(new vector<kmer_t>());
 		while (kmer_locations.size() != 0) {
 			auto it = kmer_locations.begin();
@@ -84,20 +85,22 @@ class ReferenceIndexBuilder {
 			kmer_locations.erase(it);
 		}
 		assert(kmer_locations.size() == 0);
-		t.restart();
+		//t.restart();
 		cerr << "Sorting kmers" << endl;
 		std::sort(kmers->begin(), kmers->end() );
-		cerr << "Sorting took " << t.elapsed() << " s" << endl;
-		t.restart()
-		cerr << "encoding" << endl;
+		//cerr << "Sorting took " << t.elapsed() << " s" << endl;
+		//t.restart()
+		cerr << "encoding (COMMENTED)" << endl;
+		/*
 		BitTreeBin bit_tree;
 		bit_tree.encode(kmers, k);
-		cerr << "encoding took " << t.elapsed() << " s" << endl;
-		t.restart();
+		//cerr << "encoding took " << t.elapsed() << " s" << endl;
+		//t.restart();
 		cerr << "Writing to a binary file" << endl;
 		// bit_tree.write(input_file + ".btbin");
 		bit_tree.write("index.btbin");
-		cerr << "(" << t.elapsed() << " s)" << endl;
+		//cerr << "(" << t.elapsed() << " s)" << endl;
+		*/
 	}
 
 public:

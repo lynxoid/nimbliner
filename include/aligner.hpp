@@ -8,6 +8,7 @@
 #ifndef ALIGNER
 #define ALIGNER
 
+#include "bloom_reference_index.hpp"
 #include "reference_index.hpp"
 #include "definitions.hpp"
 
