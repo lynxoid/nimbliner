@@ -18,8 +18,8 @@ void print_read(const kseq_t * seq) {
 
 class Aligner {
 
-  // shared_ptr<ReferenceIndex> _index;
-  shared_ptr<BloomReferenceIndex> _index;
+  shared_ptr<ReferenceIndex> _index;
+  // shared_ptr<BloomReferenceIndex> _index;
 
     /*
      */
@@ -284,13 +284,13 @@ class Aligner {
 
 public:
 
-  // Aligner(const shared_ptr<ReferenceIndex> index) {
-  //   _index = index;
-  // }
-
-  Aligner(const shared_ptr<BloomReferenceIndex> index) {
+  Aligner(const shared_ptr<ReferenceIndex> index) {
     _index = index;
   }
+
+  //Aligner(const shared_ptr<BloomReferenceIndex> index) {
+  //  _index = index;
+  //}
 
   ////////////////////////////////////////////////////////
   //

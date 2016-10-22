@@ -1,7 +1,7 @@
 BIN=bin
 SRC=src
 INCLUDE=-I /usr/local/include/ -I include/ # -I $(HOME)/tbb2017_20160916oss/include/
-BOOST_INCLUDE=-I /Users/geet/boost_1_52_0/
+# BOOST_INCLUDE=-I /home/ubuntu/boost_1.62.0/
 LIB=-L /usr/local/lib/ # -L $(HOME)/tbb2017_20160916oss/lib/
 BOOST_LIB=
 FLAGS=-O3 -std=c++11
@@ -23,7 +23,7 @@ nb-sample: create-dir
 
 nb-mapper: create-dir
 	# g++ $(FLAGS) -fopenmp -o $(BIN)/mapper $(SRC)/mapper.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB) -lbf
-	g++ $(FLAGS) $(DEBUGFLAGS) -o $(BIN)/mapper $(SRC)/mapper.cpp $(INCLUDE) $(LIB) -lbf
+	g++ $(FLAGS) $(DEBUGFLAGS) -o $(BIN)/mapper $(SRC)/mapper.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB) -lbf
 
 nb-bit_tree: create-dir
 	g++ $(FLAGS) -o $(BIN)/bit_tree $(SRC)/bit_tree_binary.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB)

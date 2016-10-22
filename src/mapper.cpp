@@ -13,8 +13,8 @@
 #include "SeqBFUtil.hpp"
 
 #include "reference_index.hpp"
-#include "bloom_reference_index.hpp"
-// #include "bit_tree_index.hpp"
+// #include "bloom_reference_index.hpp"
+#include "bit_tree_index.hpp"
 #include "aligner.hpp"
 // #include "parallel_aligner.hpp"
 #include "definitions.hpp"
@@ -83,8 +83,8 @@ int main(int argc, char * argv []) {
 		string stars_path = argv[4];
 
 		// shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
-		auto index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
-		// shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
+		//auto index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
+		shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
 		index->readIndex(kmers_path, stars_path, K);
 
 		cerr << "========================" << endl;
@@ -102,8 +102,8 @@ int main(int argc, char * argv []) {
 		// ParallelAligner aligner(index);
 		// TODO: separate sequence reads and aligner -- make aligner pull things off the queue
 		aligner.alignReads(path, K, false /* debug */ );
-    auto end = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end - start;
-    cerr << "querying: " << elapsed_seconds.count() << "s" << endl;
+		auto end = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed_seconds = end - start;
+		cerr << "querying: " << elapsed_seconds.count() << "s" << endl;
 	}
 }
