@@ -23,9 +23,9 @@ RUN wget https://github.com/mavam/libbf/archive/v0.1-beta.tar.gz && \
 
 ENV LD_LIBRARY_PATH /usr/local/lib/
 
-RUN wget https://github.com/lynxoid/nimbliner/archive/0.0.1.tar.gz && \
-  tar -xvzf 0.0.1.tar.gz && \
-  cd nimbliner-0.0.1 && \
-  make && make install
+RUN wget https://github.com/lynxoid/nimbliner/archive/0.0.2.tar.gz && \
+  tar -xvzf 0.0.2.tar.gz && \
+  cd nimbliner-0.0.2 && \
+  make nb-mapper && make install
 
 # set the entry point to be the aligner (when ready)

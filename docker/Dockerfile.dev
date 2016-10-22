@@ -21,11 +21,15 @@ RUN wget https://github.com/mavam/libbf/archive/v0.1-beta.tar.gz && \
   cd libbf-0.1-beta && \
   ./configure && make && make install
 
+# install gperftools
+RUN apt-get install -y dh-autoreconf
+
+# install vailgrind for profiling
+# RUN wget -nv http://valgrind.org/downloads/valgrind-3.11.0.tar.bz2 && \
+#    tar -xjf valgrind-3.11.0.tar.bz2 && cd valgrind-3.11.0 && \
+#    ./configure && make && make install
+RUN apt-get install -y valgrind
+
 ENV LD_LIBRARY_PATH /usr/local/lib/
 
-RUN wget https://github.com/lynxoid/nimbliner/archive/0.0.1.tar.gz && \
-  tar -xvzf 0.0.1.tar.gz && \
-  cd nimbliner-0.0.1 && \
-  make && make install
-
-# set the entry point to be the aligner (when ready)
+WORKDIR /nimbliner

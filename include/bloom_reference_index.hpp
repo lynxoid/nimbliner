@@ -18,7 +18,7 @@
 
 using namespace std;
 
-/* generate all possible variants for a kmer of a given length w/ hamming 
+/* generate all possible variants for a kmer of a given length w/ hamming
 distance mm from the original */
 shared_ptr<vector<kmer_t>> generate_all_variants(const kmer_t & kmer, const unsigned char K, const unsigned char mm = 1) {
 	shared_ptr<vector<kmer_t>> variants( new vector<kmer_t>() );
@@ -64,7 +64,7 @@ class BloomReferenceIndex : public ReferenceIndex {
 		getline(in, line);
 		uint64_t kmer_count = stol(line);
 		cerr << "Expected kmer count: " << kmer_count << endl;
-		shared_ptr<BaseBloomFilter> bloom = 
+		shared_ptr<BaseBloomFilter> bloom =
 			shared_ptr<BaseBloomFilter>(new BaseBloomFilter(K, (size_t)(kmer_count * 10) ) );
 
 		static const auto BUFFER_SIZE = (size_t)pow(2,22); // do not overwhelm the stack :)
@@ -103,7 +103,7 @@ class BloomReferenceIndex : public ReferenceIndex {
 		        			// cerr << (p - buf) << " " << bin_kmer << endl;
 		        		// Test: time the speen w/o adding stuff to BF
 		        		bloom->add(bin_kmer);
-		        		
+
 		        		// all_kmers.push_back(bin_kmer);
 		        	}
 		        	p = p_next + 1;
@@ -155,7 +155,12 @@ public:
 	}
 
 	/* returns true is this kmer is found among anchors, false otherwise*/
-	bool has_anchor(const bin_kmer_t & kmer) const {
+	bool has_anchor(const bin_kmer_t kmer) const {
+		bin_kmer_t maski_mask = kmer | 2;
+		return _stars->find(kmer) != _stars->end();
+	}
+
+	bool is_anchor(const bin_kmer_t kmer) {
 		return _stars->find(kmer) != _stars->end();
 	}
 

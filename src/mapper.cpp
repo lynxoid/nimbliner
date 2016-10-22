@@ -82,7 +82,8 @@ int main(int argc, char * argv []) {
 		string kmers_path = argv[3];
 		string stars_path = argv[4];
 
-		shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
+		// shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
+		auto index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
 		// shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
 		index->readIndex(kmers_path, stars_path, K);
 

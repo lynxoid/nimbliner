@@ -31,7 +31,7 @@ public:
 	virtual bool has_kmer(const bin_kmer_t & kmer) const =0;
 
 	/* returns true is this kmer is found among anchors, false otherwise*/
-	virtual bool has_anchor(const bin_kmer_t & kmer) const =0;
+	virtual bool has_anchor(const bin_kmer_t kmer) const =0;
 
 	// TODO: what does this & do? do we use it?
 	virtual vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const =0;
@@ -45,7 +45,7 @@ public:
 		cerr << "reading stars from " << path << endl;
 		auto start = std::chrono::system_clock::now();
 
-		shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> kmer_locations = 
+		shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> kmer_locations =
 			shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>>(new unordered_map<kmer_t, vector<genomic_coordinate_t>>());
 		ifstream in(path);
 		string line;
@@ -62,7 +62,7 @@ public:
 	    		(*kmer_locations)[bin_kmer].push_back(location);
 			}
 			if ((*kmer_locations)[bin_kmer].size() > 10000) {
-				cerr << nimble::mer_binary_to_string(bin_kmer, K) << " " << 
+				cerr << nimble::mer_binary_to_string(bin_kmer, K) << " " <<
 					(*kmer_locations)[bin_kmer].size() << endl;
 				kmer_locations->erase( kmer_locations->find(bin_kmer) );
 			}

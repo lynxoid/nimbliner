@@ -17,7 +17,8 @@ void print_read(const kseq_t * seq) {
 
 class Aligner {
 
-  shared_ptr<ReferenceIndex> _index;
+  // shared_ptr<ReferenceIndex> _index;
+  shared_ptr<BloomReferenceIndex> _index;
 
     /*
      */
@@ -144,7 +145,7 @@ class Aligner {
         else {
             matched_kmers.push_back(0);
         }
-        if ( _index->has_anchor(bin_kmer) ) {
+        if ( _index->is_anchor(bin_kmer) ) {
             matched_stars.emplace_back(bin_kmer, 0);
         }
         return bin_kmer;
@@ -257,7 +258,7 @@ class Aligner {
                 // cerr << endl;
             }
 
-            if ( _index->has_anchor(bin_kmer) &&  matched_kmers.back() == 1 &&
+            if ( _index->is_anchor(bin_kmer) &&  matched_kmers.back() == 1 &&
                 matched_kmers[matched_kmers.size() - 2] == 1 ) {
                 // using i+1 since that makes it a 1-based coord system relative to read start
                 matched_stars.emplace_back(bin_kmer, i + 1);
@@ -282,7 +283,11 @@ class Aligner {
 
 public:
 
-  Aligner(const shared_ptr<ReferenceIndex> index) {
+  // Aligner(const shared_ptr<ReferenceIndex> index) {
+  //   _index = index;
+  // }
+
+  Aligner(const shared_ptr<BloomReferenceIndex> index) {
     _index = index;
   }
 
