@@ -22,7 +22,7 @@ docker run -v `pwd`:/nimbliner nimbliner-dev:0.1 mapper 20 <path to your reads, 
 
 You can compile from source. The dependencies are [liffb](https://github.com/mavam/libbf) and [TCLAP](http://tclap.sourceforge.net/). You may need to set `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH` for MacOS) to `/usr/local/lib` since `libbf` installs there by default.
 
-#### Niceties
+### Niceties
 
 You can generate synthetic reads w/ mismatches and indels. For example, to sample a million reads from the chromosome w/ 1.5% error rate, do:
 
@@ -30,23 +30,12 @@ You can generate synthetic reads w/ mismatches and indels. For example, to sampl
 docker run -v `pwd`:/nimbliner nimbliner-dev:0.1 sample 20 1000000 chromo.fa 1.5 > sampled_reads.fa
 ```
 
-## TODOs: 
- 
-- [x] engineer a testing pipeline; write tests, python code for plotting; script to install/run
-  -  [x] download WGS data for illumina (reference, reads)
-  -  [x] snakemake pipeline
-  -  [x] testing frameworks for python, C++, seq. data
-- [ ] add CL args parsing to all tools
-- [ ] use BitTree for kmer storage, BF for aligning
-- [ ] generate CIGAR strings
-- [ ] produce full SAM/BAM
+### TODO
 - [ ] provide benchmark data
 - [ ] prepare indices for the whole human genome
-- [ ] prallelize the operations
-- [ ] reduce memory use for indexing stage
 - [ ] integrate with TravisCI
 
-## Comparisons:
+### Comparisons:
  - DALIGNER
  - STAR
  - BWA
