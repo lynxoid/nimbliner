@@ -47,7 +47,7 @@ input_parameters parse_arguments(const int argc, char * argv []) {
                 "Path to index anchors file", true, "?", "string");
         cmd.add( anchors );
 
-	TCLAP::ValueArg<std::string> index_kmers("x","index kmers",
+	TCLAP::ValueArg<std::string> index_kmers("x","index-kmers",
                 "All reference kmers", true, "?", "string");
         cmd.add( index_kmers );
 
