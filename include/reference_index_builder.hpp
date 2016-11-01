@@ -25,7 +25,7 @@ class ReferenceIndexBuilder {
 
 	/*
 	 */
-	void write_anchors(unordered_set<kmer_t> & star_kmers, 
+	void write_anchors(unordered_set<kmer_t> & star_kmers,
 		const unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
 		cerr << "saving anchors" << endl;
 
@@ -57,6 +57,14 @@ class ReferenceIndexBuilder {
 		ofstream all_kmers("all_kmers.txt");
 		// write hte # of kmers to expect
 		all_kmers << kmer_locations.size() << endl;
+
+		// TODO
+		// cerr << "Sorting kmers" << endl;
+		// std::sort(kmer_locations->begin(), kmer_locations->end(), [](pair<> a, pair<> b) {
+			// return a.first < b.first;
+		// } );
+		// cerr << "Sorting took " << t.elapsed() << " s" << endl;
+		// t.restart();
 
 		int i = 0;
 		while (kmer_locations.size() > 0) {

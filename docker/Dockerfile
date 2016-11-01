@@ -28,4 +28,4 @@ RUN wget https://github.com/lynxoid/nimbliner/archive/0.0.2.tar.gz && \
   cd nimbliner-0.0.2 && \
   make nb-mapper && make install
 
-# set the entry point to be the aligner (when ready)
+WORKDIR /nimbliner/bin
