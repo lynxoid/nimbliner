@@ -1,60 +1,41 @@
-### Compile
+## nimbliner - nimble aligner
 
-You need libbf. Dont forget about DYLD_LIBRARY_PATH / DYLD_FALLBACK_LIBRARY_PATH.
+Fast and lightweight read aligner (experimental)
 
-### Installation ###
+###
 
-Requires [TCLAP](http://tclap.sourceforge.net/) -- install separately before installing the rest. Then download code/checkout, run `make`.
+Nimbliner uses Bloom filters instead of suffix arrays as reference which incurs the cost close to `n` in the size of reference sequence (instead of `2-4n` for suffix arrays or BWT). It also does not need to perform a full alignment shaving off a lot of the computational cost. Nimbliner does not yet produce cigar strings, but there is no reason why it would not be able to.
 
-### Run
+### Installation
 
-To create an index for a chromosome:
-
-```
-	./kmers index 20 chromo.fa
-```
-
-where 20 is kmer length. This will produce 2 files: chromo.index (all kmers for a pbDG) and chromo.star (kmers selected to be anchors for the index along w/ their locations anywhere in the reference seq).
-
-To sample a million reads from the chromosome w/ 1.5% error rate:
+You can build a docker image and then run nimbliner wthin the container:
 
 ```
-	./sample 20 1000000 chromo.fa 1.5 > sampled_reads.fa
+<clone the repo>
+docker build -t nimbliner-dev:0.1 -f docker/Dockerfile docker/
+# this will produce all_kmers.txt and anchors.txt in the current directory
+docker run -v `pwd`:/nimbliner nimbliner-dev:0.1 indexer 20 <path to your reference, single fasta file>
+docker run -v `pwd`:/nimbliner nimbliner-dev:0.1 mapper 20 <path to your reads, single fasta file> all_kmers.txt anchors.txt
 ```
 
-To align sampled reads:
+#### Other ways
+
+You can compile from source. The dependencies are [liffb](https://github.com/mavam/libbf) and [TCLAP](http://tclap.sourceforge.net/). You may need to set `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH` for MacOS) to `/usr/local/lib` since `libbf` installs there by default.
+
+### Niceties
+
+You can generate synthetic reads w/ mismatches and indels. For example, to sample a million reads from the chromosome w/ 1.5% error rate, do:
 
 ```
-	./kmers query 20 chromo.index chromo.star sampled_reads.fa
+docker run -v `pwd`:/nimbliner nimbliner-dev:0.1 sample 20 1000000 chromo.fa 1.5 > sampled_reads.fa
 ```
 
-chro20 genomic reads were aligned to genome assembly at:
-ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz
-
-## Summary 
-
-Nimbliner -- rapid read aligner with low memory consumption
-
-References: stored as a pdBG
-
-Reads 1: short, low error rate.
-
-Reads 2: long, high error rate.
-
-## Goals: 
- 
-- [x] engineer a testing pipeline; write tests, python code for plotting; script to install/run
-  -  [ ] download WGS data for illumina (reference, reads)
-  -  [x] snakemake pipeline
-  -  [x] testing frameworks for python, C++, seq. data
+### TODO
+- [ ] provide benchmark data
+- [ ] prepare indices for the whole human genome
 - [ ] integrate with TravisCI
-- [ ] find a mapping location for a read, provide mapping quality score, produce positions for reads w/ errors (more kmers sampled)
-- [ ] alignment on the laptop (if less memory -- slower, if more memory -- faster)
-- [ ] produce full alignments, not just the positions
-- [ ] produce full SAM/BAM
-- [ ] test speed/performance on long reads
 
-## Comparisons:
+### Comparisons:
  - DALIGNER
  - STAR
  - BWA

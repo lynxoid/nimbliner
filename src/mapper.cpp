@@ -13,7 +13,7 @@
 #include "SeqBFUtil.hpp"
 
 #include "reference_index.hpp"
-// #include "bloom_reference_index.hpp"
+#include "bloom_reference_index.hpp"
 #include "bit_tree_index.hpp"
 #include "aligner.hpp"
 // #include "parallel_aligner.hpp"
@@ -32,26 +32,39 @@ struct input_parameters {
 
 input_parameters parse_arguments(const int argc, char * argv []) {
 	TCLAP::CmdLine cmd("Align reads faster and in less memory", ' ', "0.1");
+	// input path
 	TCLAP::ValueArg<std::string> input("i","input",
 		"Input reads (fasta or fastq)", true, "?", "string");
 	cmd.add( input );
 
+	// output path
 	TCLAP::ValueArg<std::string> output("o","output",
 		"Filename to write alignments to", false, "?", "string");
 	cmd.add( output );
-	cmd.parse( argc, argv );
 
-	// TCLAP::ValueArg<int> output("k","kmer-length",
-		// "Kmer legnth to use for ", false, "?", "string");
-	// cmd.add( output );
-	// cmd.parse( argc, argv );
+	// input anchors
+	TCLAP::ValueArg<std::string> anchors("a","anchors",
+                "Path to index anchors file", true, "?", "string");
+        cmd.add( anchors );
+
+	TCLAP::ValueArg<std::string> index_kmers("x","index-kmers",
+                "All reference kmers", true, "?", "string");
+        cmd.add( index_kmers );
+
+	// TODO: this parameter should be implicit from the way we built the index
+	// pass w/ the index file
+	TCLAP::ValueArg<int> klen("k", "kmer-length","Kmer length used in index",
+                true, 20, "int");
+        cmd.add( klen );
+
+	cmd.parse( argc, argv );
 
 	// Get the value parsed by each arg.
 	input_parameters ip;
 	ip.input_fasta = input.getValue();
-	// ip.input_anchors = anchors.getValue();
-	// ip.input_index = index.getValue();
-	ip.K = 20;
+	ip.input_anchors = anchors.getValue();
+	ip.input_index = index_kmers.getValue();
+	ip.K = klen.getValue();
 	ip.output_path = output.getValue();
 
 	return ip;
@@ -67,25 +80,12 @@ input_parameters parse_arguments(const int argc, char * argv []) {
 //
 ////////////////////////////////////////////////////////
 int main(int argc, char * argv []) {
-	// input_parameters ip = parse_arguments(argc, argv);
+	input_parameters ip = parse_arguments(argc, argv);
 
-	// string mode = argv[1];
-	int K = stoi(argv[1]);
-	string path = argv[2];
-
-	// if (mode == "index") {
-		// ReferenceIndex index;
-		// index.buildIndex(path, K);
-	// }
-	// else if (mode == "query")
 	{
-		string kmers_path = argv[3];
-		string stars_path = argv[4];
-
-		// shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
-		//auto index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
-		shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
-		index->readIndex(kmers_path, stars_path, K);
+		shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
+		// shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
+		index->readIndex(ip.input_index, ip.input_anchors, ip.K);
 
 		cerr << "========================" << endl;
 		cerr << "CAN NOW TEST THE MAPPING" << endl;
@@ -101,7 +101,7 @@ int main(int argc, char * argv []) {
 		Aligner aligner(index);
 		// ParallelAligner aligner(index);
 		// TODO: separate sequence reads and aligner -- make aligner pull things off the queue
-		aligner.alignReads(path, K, false /* debug */ );
+		aligner.alignReads(ip.input_fasta, ip.K, false /* debug */ );
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end - start;
 		cerr << "querying: " << elapsed_seconds.count() << "s" << endl;

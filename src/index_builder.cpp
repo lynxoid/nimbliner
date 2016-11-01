@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <chrono>
 
+#include <tclap/CmdLine.h>
 #include "FastaReader.h"
 #include "SeqBFUtil.hpp"
 
@@ -16,6 +17,29 @@
 
 using namespace std;
 
+struct input_parameters {
+	int K;
+	string fasta;
+};
+
+input_parameters parse_args(int argc, char * argv[]) {
+	TCLAP::CmdLine cmd("Build an index given the reference sequence", ' ', "0.1");
+        TCLAP::ValueArg<std::string> input("i","input",
+                "Reference sequence (fasta or fastq)",
+                true, " ", "string");
+        cmd.add( input );
+
+	TCLAP::ValueArg<int> klen("k","kmer-length","Seed length to sample", 
+                true, 20, "int");
+        cmd.add( klen );
+
+	cmd.parse(argc, argv);
+	input_parameters ip;
+	ip.K = klen.getValue();
+	ip.fasta = input.getValue();
+	return ip;
+}
+
 ////////////////////////////////////////////////////////
 //
 // Improvements: 
@@ -23,9 +47,7 @@ using namespace std;
 //
 ////////////////////////////////////////////////////////
 int main(int argc, char * argv []) {
-	int K = stoi(argv[1]);
-	string path = argv[2];
-
+	auto ip = parse_args(argc, argv);
 	ReferenceIndexBuilder index;
-	index.buildIndex(path, K);
+	index.buildIndex(ip.fasta, ip.K);
 }

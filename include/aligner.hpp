@@ -8,7 +8,7 @@
 #ifndef ALIGNER
 #define ALIGNER
 
-#include "bloom_reference_index.hpp"
+// #include "bloom_reference_index.hpp"
 #include "reference_index.hpp"
 #include "definitions.hpp"
 
@@ -299,6 +299,7 @@ class Aligner {
         }
 
         // resolve star kmers to get an exact mapping location
+	int need_to_extend_read = 0;
         auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
         // output all potential locations for this read
         // TODO: generate CIGAR strings and all
@@ -343,7 +344,7 @@ public:
       elapsed_seconds_str += end - start;
     }
     cerr << "Computing alignments (no IO): " << elapsed_seconds_str.count() << "s" << endl;
-    cerr << "Times needed to extend the read: " << need_to_extend_read << endl;
+    // cerr << "Times needed to extend the read: " << need_to_extend_read << endl;
   }
 };
 
