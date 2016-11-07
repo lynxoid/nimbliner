@@ -6,9 +6,7 @@ RUN apt-get update && apt-get install -y wget \
   build-essential \
   zlib1g-dev \
   cmake \
-  valgrind
-
-RUN apt-get install -y valgrind
+  libboost-all-dev
 
 # install tclap
 RUN wget https://sourceforge.net/projects/tclap/files/tclap-1.2.1.tar.gz && \

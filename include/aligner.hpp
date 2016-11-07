@@ -290,23 +290,23 @@ class Aligner {
         vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, DEBUG);
         // DEBUG info
         if (DEBUG) {
-              cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
-              // print anchor positions
-              for (auto& p : matched_stars) {
-                  cerr << p.second << ",";
-              }
-              cerr << " ";
+            cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
+            // print anchor positions
+            for (auto& p : matched_stars) {
+                cerr << p.second << ",";
+            }
+            cerr << " ";
         }
 
         // resolve star kmers to get an exact mapping location
-	int need_to_extend_read = 0;
+        int need_to_extend_read = 0;
         auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
         // output all potential locations for this read
         // TODO: generate CIGAR strings and all
         /*
         cout << seq->name.s << "\t";
         for (const auto & loc : mapping_locations) {
-          cout << loc << " ";
+        cout << loc << " ";
         }
         cout << endl;
         */

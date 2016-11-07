@@ -24,6 +24,7 @@ class ReferenceIndexBuilder {
 	}
 
 	/*
+	 * TODO: sort and delta encode offsets; write out to a gzip
 	 */
 	void write_anchors(unordered_set<kmer_t> & star_kmers,
 		const unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
@@ -95,20 +96,24 @@ class ReferenceIndexBuilder {
 			kmer_locations.erase(it);
 		}
 		assert(kmer_locations.size() == 0);
+		cerr << "Dump to vector: " << t.elapsed() << "s" << endl;
 		t.restart();
+
 		cerr << "Sorting kmers" << endl;
 		std::sort(kmers->begin(), kmers->end() );
 		cerr << "Sorting took " << t.elapsed() << " s" << endl;
 		t.restart();
+
 		cerr << "encoding" << endl;
 		BitTreeBin bit_tree;
 		bit_tree.encode(kmers, k);
 		cerr << "encoding took " << t.elapsed() << " s" << endl;
 		t.restart();
+
 		cerr << "Writing to a binary file" << endl;
 		// bit_tree.write(input_file + ".btbin");
 		bit_tree.write("index.btbin");
-		cerr << "(" << t.elapsed() << " s)" << endl;
+		cerr << "Writing BitTree took " << t.elapsed() << " s" << endl;
 	}
 
 public:
@@ -146,9 +151,9 @@ public:
 
 		write_anchors(star_kmers, kmer_locations);
 		// switch between different implementations of the index
-		write_index(kmer_locations);
+		// write_index(kmer_locations);
 		// bit tree representation will take less space
-		// write_bit_tree_index(kmer_locations, K);
+		write_bit_tree_index(kmer_locations, K);
 		return;
 	}
 };
