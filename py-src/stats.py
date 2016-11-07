@@ -142,3 +142,9 @@ def compute_basic_bwa_stats(in_path, out_path, margin=3):
             else:
                 multimapped_no_true += 1
     write_eval_file(out_path, true_single, mismapped, unmapped, multimapped_no_true, multimapped_has_true)
+
+
+if __name__ == "__main__":
+    import sys
+    import stats
+    stats.compute_basic_stats(sys.argv[1], sys.argv[2])
