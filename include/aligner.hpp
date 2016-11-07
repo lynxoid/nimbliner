@@ -86,14 +86,14 @@ class Aligner {
   vector<genomic_coordinate_t> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars,
     // unordered_map<kmer_t, vector<int>> & star_locations,
     int & extend,
-        const int K) {
+    const int K) {
     vector<genomic_coordinate_t> mappings;
 
     // what if no stars mapped?
     if (matched_stars.size() == 0) {
       // need to extend the read until we hit some star
       extend++;
-            // cerr << endl;
+      // cerr << endl;
     }
     if (matched_stars.size() == 1) {
       // that's the only thing we got going
@@ -303,14 +303,20 @@ class Aligner {
         auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
         // output all potential locations for this read
         // TODO: generate CIGAR strings and all
-        /*
+        
         cout << seq->name.s << "\t";
         for (const auto & loc : mapping_locations) {
         cout << loc << " ";
         }
         cout << endl;
-        */
-        if (DEBUG) cerr << endl;
+        
+        if (DEBUG) {
+            cerr << "mapping locations: " << mapping_locations.size() << " -- ";
+            for (const auto & loc : mapping_locations) {
+                cout << loc << " ";
+            }
+            cerr << endl;
+        }
         return mapping_locations;
     }
 
@@ -339,7 +345,7 @@ public:
         continue;
       }
       auto start = std::chrono::system_clock::now();
-      align_single_read(seq, K, debug);
+      align_single_read(seq, K, true);
       auto end = std::chrono::system_clock::now();
       elapsed_seconds_str += end - start;
     }
