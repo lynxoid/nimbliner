@@ -11,6 +11,8 @@
 
 class BitTreeIndex : public ReferenceIndex {
 
+	int K;
+
 	shared_ptr<BitTreeBin> _bit_tree;
 
 	shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _stars;
@@ -25,8 +27,11 @@ class BitTreeIndex : public ReferenceIndex {
 	}
 
 public:
+
+	int getK() {return K;}
+
 	// read kmers (or pdBG describing the reference) and anchor locations
-	void readIndex(const string & kmers_path, const string & stars_path, const uint K) {
+	void readIndex(const string & kmers_path, const string & stars_path) {
 		boost::timer t;
 		_bit_tree = readBitTree(kmers_path, K);
 		cerr << "Reading took: " << t.elapsed() << "s" << endl;

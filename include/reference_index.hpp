@@ -24,8 +24,10 @@ public:
 
 	ReferenceIndex() {};
 
+	virtual int getK() =0;
+
 	// read kmers (or pdBG describing the reference) and anchor locations
-	virtual void readIndex(const string & kmers_path, const string & stars_path, const uint K) =0;
+	virtual void readIndex(const string & kmers_path, const string & stars_path) =0;
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */
 	virtual bool has_kmer(const bin_kmer_t kmer) const =0;

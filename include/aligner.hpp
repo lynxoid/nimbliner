@@ -303,13 +303,13 @@ class Aligner {
         auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
         // output all potential locations for this read
         // TODO: generate CIGAR strings and all
-        
+
         cout << seq->name.s << "\t";
         for (const auto & loc : mapping_locations) {
           cout << loc << " ";
         }
         cout << endl;
-        
+
         if (DEBUG) {
             cerr << "mapping locations: " << mapping_locations.size() << " -- ";
             for (const auto & loc : mapping_locations) {
@@ -329,7 +329,7 @@ public:
   ////////////////////////////////////////////////////////
   //
   ////////////////////////////////////////////////////////
-  void alignReads(const string & path, const int K, bool debug = false) {
+  void alignReads(const string & path, bool debug = false) {
     FastaReader fr(path.c_str());
     kseq_t * seq;
     int passed_cutoff = 0;
@@ -341,11 +341,11 @@ public:
       read_count++;
       if (read_count % 100000 == 0)
         cerr << read_count / 100000 << "00K ";
-      if (seq->seq.l < K) {
+      if (seq->seq.l < _index->getK() ) {
         continue;
       }
       auto start = std::chrono::system_clock::now();
-      align_single_read(seq, K, true);
+      align_single_read(seq, _index->getK(), true);
       auto end = std::chrono::system_clock::now();
       elapsed_seconds_str += end - start;
     }

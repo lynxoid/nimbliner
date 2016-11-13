@@ -44,13 +44,16 @@ class BloomReferenceIndex : public ReferenceIndex {
 	// anchor locations (stars)
 	shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _stars;
 
+	// kmer length
+	int K = 0;
+
 	/*
 	 *
 	 * read kmers describing the reference from the file
 	 *
 	 */
-	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & path, int K) {
-		cerr << "reading kmers from " << path << endl;
+	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & path) {
+		cerr << "[BloomFilterIndex] reading index from " << path << endl;
 		auto start = std::chrono::system_clock::now();
 
 		// vector<kmer_bin_t> all_kmers;
@@ -61,6 +64,10 @@ class BloomReferenceIndex : public ReferenceIndex {
 			exit(1);
 		}
 		string line;
+		getline(in, line);
+		uint64_t k = stol(line);
+		this->K = k;
+		cerr << "Kmer length: " << K << endl;
 		getline(in, line);
 		uint64_t kmer_count = stol(line);
 		cerr << "Expected kmer count: " << kmer_count << endl;
@@ -143,10 +150,13 @@ public:
 
 	BloomReferenceIndex() {};
 
+	int getK() {return K;}
+
 	// read kmers (or pdBG describing the reference) and anchor locations
-	void readIndex(const string & kmers_path, const string & stars_path, const uint K) {
-		_bf = readKmers_bf_faster(kmers_path, K);
-		_stars = readStarLocations(stars_path, K);
+	void readIndex(const string & kmers_path, const string & stars_path) {
+		this->K = 0;
+		_bf = readKmers_bf_faster(kmers_path);
+		_stars = readStarLocations(stars_path, this->K);
 	}
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */

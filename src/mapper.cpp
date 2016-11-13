@@ -26,8 +26,6 @@ struct input_parameters {
 	string input_anchors;
 	string input_index;
 	string output_path;
-	// TODO: embed this into the index so that user does not have to enter it
-	int K;		// kmer size to use (assumes this K was used in index)
 };
 
 input_parameters parse_arguments(const int argc, char * argv []) {
@@ -51,12 +49,6 @@ input_parameters parse_arguments(const int argc, char * argv []) {
                 "All reference kmers", true, "?", "string");
         cmd.add( index_kmers );
 
-	// TODO: this parameter should be implicit from the way we built the index
-	// pass w/ the index file
-	TCLAP::ValueArg<int> klen("k", "kmer-length","Kmer length used in index",
-                true, 20, "int");
-        cmd.add( klen );
-
 	cmd.parse( argc, argv );
 
 	// Get the value parsed by each arg.
@@ -64,7 +56,6 @@ input_parameters parse_arguments(const int argc, char * argv []) {
 	ip.input_fasta = input.getValue();
 	ip.input_anchors = anchors.getValue();
 	ip.input_index = index_kmers.getValue();
-	ip.K = klen.getValue();
 	ip.output_path = output.getValue();
 
 	return ip;
@@ -85,7 +76,7 @@ int main(int argc, char * argv []) {
 	{
 		shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
 		// shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
-		index->readIndex(ip.input_index, ip.input_anchors, ip.K);
+		index->readIndex(ip.input_index, ip.input_anchors);
 
 		cerr << "========================" << endl;
 		cerr << "CAN NOW TEST THE MAPPING" << endl;
@@ -101,7 +92,7 @@ int main(int argc, char * argv []) {
 		Aligner aligner(index);
 		// ParallelAligner aligner(index);
 		// TODO: separate sequence reads and aligner -- make aligner pull things off the queue
-		aligner.alignReads(ip.input_fasta, ip.K, false /* debug */ );
+		aligner.alignReads(ip.input_fasta, false /* debug */ );
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end - start;
 		cerr << "querying: " << elapsed_seconds.count() << "s" << endl;
