@@ -203,6 +203,12 @@ class Aligner {
             print_read(seq);
         }
 
+        bool detailed_debug = false;
+
+        if (seq->name.s == "14_52691501") {
+            detailed_debug = true;
+        }
+
         vector<pair<kmer_t, int>> matched_stars;
         bool has_correction = false;
         int L = seq->seq.l - K + 1;
@@ -229,34 +235,31 @@ class Aligner {
                 matched_kmers.push_back(1);
             }
             else {
-                // if (debug)
-                // cerr << "i=" << i << " 0-coord: " << i+1 << " " << mer_binary_to_string(bin_kmer, K) << " ";
-
                 // mismatch? indel?
-                // TODO: step over the base if not
+                // TODO: step over the base if suspect an indel
                 char reference_base;
                 // corrects bin_kmer, returns the reference_base that worked
                 bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
 
-                if (!mismatch) {
+                if (!mismatch) { // were not able to correct this as a mismatch
                     if (debug)
                     // cerr << "could not resolve as MM ";
                     matched_kmers.push_back(0);
                     // TODO: is an indel?
                     // bool is_indel = is_indel(bin_kmer, _index);
                 }
-                else {
+                else { // were able to correct this as a mismatch
                     has_correction = true;
                     // fix the base, change the kmer, and move on
                     // seq->seq.s[i + K] = reference_base;
                     matched_kmers.push_back(1);
                     // correct the current kmer
                     kmer_t mask = get_all_ones(K-1) << 2;
+                    // mask the last base w/ the base suggested via correction
                     bin_kmer = (bin_kmer & mask ) | (kmer_t)nimble::dna_codes[reference_base];
                     // if (debug)
                     // cerr << "\tcorrected kmer " << mer_binary_to_string(bin_kmer, K) << " ";
                 }
-                // cerr << endl;
             }
 
             if ( _index->is_anchor(bin_kmer) &&  matched_kmers.back() == 1 &&
@@ -299,7 +302,7 @@ class Aligner {
         }
 
         // resolve star kmers to get an exact mapping location
-	int need_to_extend_read = 0;
+	    int need_to_extend_read = 0;
         auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
         // output all potential locations for this read
         // TODO: generate CIGAR strings and all
@@ -314,6 +317,7 @@ class Aligner {
             cerr << "mapping locations: " << mapping_locations.size() << " -- ";
             for (const auto & loc : mapping_locations) {
                 cout << loc << " ";
+                cerr << loc << " ";
             }
             cerr << endl;
         }
@@ -330,27 +334,33 @@ public:
   //
   ////////////////////////////////////////////////////////
   void alignReads(const string & path, bool debug = false) {
-    FastaReader fr(path.c_str());
-    kseq_t * seq;
-    int passed_cutoff = 0;
-    int read_count = 0;
-    int need_to_extend_read = 0;
+      FastaReader fr(path.c_str());
+      kseq_t * seq;
+      int passed_cutoff = 0;
+      int read_count = 0;
+      int need_to_extend_read = 0;
 
-    std::chrono::duration<double> elapsed_seconds_str;
-    while ( (seq = fr.nextSequence() ) ) {
-      read_count++;
-      if (read_count % 100000 == 0)
-        cerr << read_count / 100000 << "00K ";
-      if (seq->seq.l < _index->getK() ) {
-        continue;
+      std::chrono::duration<double> elapsed_seconds_str;
+      while ( (seq = fr.nextSequence() ) ) {
+          read_count++;
+
+          if (read_count % 100000 == 0)
+              cerr << read_count / 100000 << "00K ";
+          if (seq->seq.l < _index->getK() ) {
+              continue;
+          }
+          auto start = std::chrono::system_clock::now();
+          align_single_read(seq, _index->getK(), true);
+          auto end = std::chrono::system_clock::now();
+          elapsed_seconds_str += end - start;
+
+// DEBUG
+          if (read_count >= 1000) break;
+// DEBUG
+
       }
-      auto start = std::chrono::system_clock::now();
-      align_single_read(seq, _index->getK(), true);
-      auto end = std::chrono::system_clock::now();
-      elapsed_seconds_str += end - start;
-    }
-    cerr << "Computing alignments (no IO): " << elapsed_seconds_str.count() << "s" << endl;
-    // cerr << "Times needed to extend the read: " << need_to_extend_read << endl;
+      cerr << "Computing alignments (no IO): " << elapsed_seconds_str.count() << "s" << endl;
+      // cerr << "Times needed to extend the read: " << need_to_extend_read << endl;
   }
 };
 

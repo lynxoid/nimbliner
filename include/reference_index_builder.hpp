@@ -25,7 +25,7 @@ class ReferenceIndexBuilder {
 
 	/*
 	 */
-	void write_anchors(unordered_set<kmer_t> & star_kmers, 
+	void write_anchors(unordered_set<kmer_t> & star_kmers,
 		const unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
 		cerr << "saving anchors" << endl;
 
@@ -126,7 +126,7 @@ public:
 				kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
 			}
 			else {
-				 // can delta encode here and fit into less space technically
+				// can delta encode here and fit into less space technically
 				kmer_locations[kmer].push_back(i);
 			}
 			// pick stars at every 50 bases
