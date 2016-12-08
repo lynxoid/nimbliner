@@ -151,11 +151,13 @@ public:
 
 		write_anchors(star_kmers, kmer_locations);
 		// switch between different implementations of the index
-		// write_index(kmer_locations);
+		write_index(kmer_locations);
 		// bit tree representation will take less space
-		write_bit_tree_index(kmer_locations, K);
+		// write_bit_tree_index(kmer_locations, K);
 		return;
 	}
+
+	
 };
 
 #endif // INDEX_BUILDER

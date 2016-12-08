@@ -1,0 +1,6 @@
+data/*
+related_work/*
+.snakemake/*
+.git/*
+*.sh
+*.profile

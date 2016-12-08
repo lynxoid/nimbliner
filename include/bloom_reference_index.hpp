@@ -74,6 +74,9 @@ class BloomReferenceIndex : public ReferenceIndex {
 	    	cerr << "[ERROR] Could not open file: " << path << endl;
 	    	exit(1);
 	    }
+		else {
+			cerr << "Opened index file successfully" << endl;
+		}
 	 	//    /* Advise the kernel of our access pattern.  */
 	 	//    // posix_fadvise(fd, 0, 0, 1);  // FDADVICE_SEQUENTIAL
 	    char buf[BUFFER_SIZE + 1];
