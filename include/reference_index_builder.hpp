@@ -26,18 +26,16 @@ class ReferenceIndexBuilder {
 	/*
 	 * TODO: sort and delta encode offsets; write out to a gzip
 	 */
-	void write_anchors(unordered_set<kmer_t> & star_kmers,
-		const unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
+	void write_anchors(unordered_map<kmer_t, vector<genomic_coordinate_t>> & anchors) {
 		cerr << "saving anchors" << endl;
 
 		ofstream star_locations_out("anchors.txt");
 		auto start = std::chrono::system_clock::now();
 
-		for (auto star : star_kmers) {
-			star_locations_out << star << " ";
-			auto it = kmer_locations.find(star);
+		for (auto & anchor_pair : anchors) {
+			star_locations_out << anchor_pair.first << " ";
 			assert(it != kmer_locations.end());
-			for (auto loc : it->second) star_locations_out << loc << " ";
+			for (auto loc : anchor_pair->second) star_locations_out << loc << " ";
 			star_locations_out << endl;
 			// all_kmers << star << endl;
 			// kmer_locations.erase(star);
@@ -51,13 +49,15 @@ class ReferenceIndexBuilder {
 
 	/*
 	 */
-	void write_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
+	void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts) {
 		cerr << "saving all kmers" << endl;
 		auto start = std::chrono::system_clock::now();
 
 		ofstream all_kmers("all_kmers.txt");
+		// TODO: write kmer size
+
 		// write hte # of kmers to expect
-		all_kmers << kmer_locations.size() << endl;
+		all_kmers << kmer_counts.size() << endl;
 
 		// TODO
 		// cerr << "Sorting kmers" << endl;
@@ -68,15 +68,15 @@ class ReferenceIndexBuilder {
 		// t.restart();
 
 		int i = 0;
-		while (kmer_locations.size() > 0) {
-			auto it = kmer_locations.begin();
+		while (kmer_counts.size() > 0) {
+			auto it = kmer_counts.begin();
 			all_kmers << it->first << endl;
-			kmer_locations.erase(it);
+			kmer_counts.erase(it);
 			i++;
 		}
 		all_kmers.close();
 		cerr << "wrote " << i << " kmers" << endl;
-		assert(kmer_locations.size() == 0);
+		assert(kmer_counts.size() == 0);
 
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds_str = end - start;
@@ -122,42 +122,97 @@ public:
 	// given a path to the reference and a kmer length K, parse the reference
 	// fasta, obtain all kmers and select anchors using a heuristic
 	// write kmers to an *.index file and write anchors to *.star file.
+	// void buildIndex(const string & ref_path, const uint K) {
+	// 	auto chromosomes = parseFasta(ref_path);
+	// 	// count kmers, record their locations
+	// 	unordered_map<kmer_t, vector<genomic_coordinate_t>> kmer_locations;
+	//
+	// 	unordered_set<kmer_t> star_kmers;
+	// 	assert(chromosomes.size() > 0);
+	// 	auto chr = chromosomes[0];
+	//
+	// 	int c = 0;
+	// 	cerr << "gathering all kmers... ";
+	// 	for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
+	// 		kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
+	// 		if ( kmer_locations.find(kmer) == kmer_locations.end() ) {
+	// 			kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
+	// 		}
+	// 		else {
+	// 			 // can delta encode here and fit into less space technically
+	// 			kmer_locations[kmer].push_back(i);
+	// 		}
+	// 		// pick stars at every 50 bases
+	// 		if (i % 50 == 0) star_kmers.emplace(kmer);
+	// 		if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
+	// 	}
+	// 	cerr << "(" << kmer_locations.size() << " kmers)" << endl;
+	// 	cerr << "(" << star_kmers.size() << " anchors)" << endl;
+	//
+	// 	write_anchors(star_kmers, kmer_locations);
+	// 	// switch between different implementations of the index
+	// 	write_index(kmer_locations);
+	// 	// bit tree representation will take less space
+	// 	// write_bit_tree_index(kmer_locations, K);
+	// 	return;
+	// }
+
 	void buildIndex(const string & ref_path, const uint K) {
 		auto chromosomes = parseFasta(ref_path);
-		// count kmers, record their locations
-		unordered_map<kmer_t, vector<genomic_coordinate_t>> kmer_locations;
 
-		unordered_set<kmer_t> star_kmers;
+		// naive counter
+		// TODO: use counting BF
+		unordered_map<kmer_t, uint8_t> kmer_counts;
+
+		unordered_set<kmer_t> anchors;
 		assert(chromosomes.size() > 0);
+		// TODO: index all chromosomes given as input
 		auto chr = chromosomes[0];
 
 		int c = 0;
-		cerr << "gathering all kmers... ";
+		cerr << "Gathering kmers: pass 1";
 		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
 			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
-			if ( kmer_locations.find(kmer) == kmer_locations.end() ) {
-				kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
+			if ( kmer_counts.find(kmer) == kmer_counts.end() ) {
+					kmer_counts[kmer] = 1;
 			}
 			else {
-				 // can delta encode here and fit into less space technically
-				kmer_locations[kmer].push_back(i);
+				// can delta encode here and fit into less space technically
+				if (kmer_counts[kmer] < 255)
+					kmer_counts[kmer]++;
+				// else -- do not increment to avoid overflow
 			}
-			// pick stars at every 50 bases
-			if (i % 50 == 0) star_kmers.emplace(kmer);
 			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
 		}
-		cerr << "(" << kmer_locations.size() << " kmers)" << endl;
-		cerr << "(" << star_kmers.size() << " anchors)" << endl;
+		cerr << "(" << kmer_counts.size() << " kmers)" << endl;
+		cerr << "Gathering kmers: pass 2";
 
-		write_anchors(star_kmers, kmer_locations);
+		const int x = 5;
+
+		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
+			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
+			if (kmer_counts[kmer] < x) {
+				// add to anchors
+				if (anchors.find(kmer) == anchors.end() ) {
+					anchors.emplace(kmer, vector<genomic_coordinate_t>{i});
+				}
+				else
+					anchors[kmer].push_back(i);
+			}
+			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
+		}
+
+		cerr << "(" << anchors.size() << " anchors)" << endl;
+
+		write_anchors(anchors);
 		// switch between different implementations of the index
-		write_index(kmer_locations);
+		write_index(kmer_counts);
 		// bit tree representation will take less space
 		// write_bit_tree_index(kmer_locations, K);
 		return;
 	}
 
-	
+
 };
 
 #endif // INDEX_BUILDER
