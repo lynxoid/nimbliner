@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <algorithm>
+#include <list>
 
 #include <boost/timer.hpp>
 
@@ -26,7 +27,7 @@ class ReferenceIndexBuilder {
 	/*
 	 * TODO: sort and delta encode offsets; write out to a gzip
 	 */
-	void write_anchors(unordered_map<kmer_t, vector<genomic_coordinate_t>> & anchors) {
+	void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors) {
 		cerr << "saving anchors" << endl;
 
 		ofstream star_locations_out("anchors.txt");
@@ -185,13 +186,13 @@ public:
 		const int x = 5;
 
 		// TODO: can keep linked lists since expect these lists to be short
-		unordered_map<kmer_t, vector<genomic_coordinate_t>	> anchors;
+		unordered_map<kmer_t, list<genomic_coordinate_t>	> anchors;
 		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
 			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
 			if (kmer_counts[kmer] < x) {
 				// add to anchors
 				if (anchors.find(kmer) == anchors.end() ) {
-					anchors.emplace(kmer, vector<genomic_coordinate_t>{i});
+					anchors.emplace(kmer, list<genomic_coordinate_t>{i});
 				}
 				else
 					anchors[kmer].push_back(i);

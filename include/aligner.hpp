@@ -305,13 +305,21 @@ class Aligner {
 
         // output all potential locations for this read
         // print in a SAM-like format
+        /*
         string ref_name = "chr20";
         for (const auto & loc : mapping_locations) {
           // TODO: generate CIGAR strings and all
           string cigar = "100M";
-          cout << seq->name.s << "\t0" << ref_name << "\t" << loc << "\t0\t" <<
+          cout << seq->name.s << "\t0\t" << ref_name << "\t" << loc << "\t0\t" <<
             cigar << "\t*\t0\t0\t" << seq->seq.s << "\t*" << endl;
         }
+        */
+
+        cout << seq->name.s << "\t";
+        for (const auto & loc : mapping_locations) {
+          cout << loc << " ";
+        }
+        cout << endl;
 
         if (DEBUG) {
             cerr << "mapping locations: " << mapping_locations.size() << " -- ";

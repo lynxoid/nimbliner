@@ -1,7 +1,7 @@
 import pysam
 import re
 
-def write_eval_file(path, true_single, mismapped, unmapped, multimapped_no_true, 
+def write_eval_file(path, true_single, mismapped, unmapped, multimapped_no_true,
     multimapped_has_true):
     """
     """
@@ -46,7 +46,7 @@ def parse_read_name(name):
         mismatches = list(map(int, str(mismatches).strip("_").split("_") ) )
     if indels != None:
         indels = list(map(int, str(indels).strip("_").split("_") ) )
-    
+
     return true_position, mismatches, indels
 
 def compute_basic_stats(in_path, out_path, margin=3):
@@ -59,16 +59,18 @@ def compute_basic_stats(in_path, out_path, margin=3):
     multimapped_no_true = 0
     with open(in_path, "r") as f_in:
         for line in f_in:
-            
             parts = line.strip().split("\t")
 
             if len(parts) < 2:
                 unmapped += 1
                 continue
             true_location, mismatches, indels = parse_read_name(parts[0])
-            # true_location = int(parts[0].split("_")[1])
+
             observed_locations = parts[1]
             observed_locations = list(map(int,observed_locations.split(" ") ) )
+
+            # observed_locations = list(map(int, parts[1:]))
+
             if len(observed_locations) == 1:
                 if compare_true_observed_positions(true_location, observed_locations[0], margin):
                     true_single += 1
