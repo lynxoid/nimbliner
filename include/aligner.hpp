@@ -302,9 +302,10 @@ class Aligner {
         // resolve star kmers to get an exact mapping location
         int need_to_extend_read = 0;
         auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
-        
+
         // output all potential locations for this read
         // print in a SAM-like format
+        string ref_name = "chr20";
         for (const auto & loc : mapping_locations) {
           // TODO: generate CIGAR strings and all
           string cigar = "100M";

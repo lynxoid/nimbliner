@@ -34,11 +34,8 @@ class ReferenceIndexBuilder {
 
 		for (auto & anchor_pair : anchors) {
 			star_locations_out << anchor_pair.first << " ";
-			assert(it != kmer_locations.end());
-			for (auto loc : anchor_pair->second) star_locations_out << loc << " ";
+			for (auto loc : anchor_pair.second) star_locations_out << loc << " ";
 			star_locations_out << endl;
-			// all_kmers << star << endl;
-			// kmer_locations.erase(star);
 		}
 		star_locations_out.close();
 
@@ -81,7 +78,7 @@ class ReferenceIndexBuilder {
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds_str = end - start;
 	    cerr << "Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
-		kmer_locations.clear();
+		kmer_counts.clear();
 	}
 
 	void write_bit_tree_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations,
@@ -163,14 +160,12 @@ public:
 		// naive counter
 		// TODO: use counting BF
 		unordered_map<kmer_t, uint8_t> kmer_counts;
-
-		unordered_set<kmer_t> anchors;
 		assert(chromosomes.size() > 0);
 		// TODO: index all chromosomes given as input
 		auto chr = chromosomes[0];
 
 		int c = 0;
-		cerr << "Gathering kmers: pass 1";
+		cerr << "Gathering kmers: pass 1" << endl;
 		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
 			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
 			if ( kmer_counts.find(kmer) == kmer_counts.end() ) {
@@ -185,10 +180,12 @@ public:
 			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
 		}
 		cerr << "(" << kmer_counts.size() << " kmers)" << endl;
-		cerr << "Gathering kmers: pass 2";
+		cerr << "Gathering kmers: pass 2" << endl;
 
 		const int x = 5;
 
+		// TODO: can keep linked lists since expect these lists to be short
+		unordered_map<kmer_t, vector<genomic_coordinate_t>	> anchors;
 		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
 			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
 			if (kmer_counts[kmer] < x) {
@@ -198,6 +195,7 @@ public:
 				}
 				else
 					anchors[kmer].push_back(i);
+				i += 50;
 			}
 			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
 		}
