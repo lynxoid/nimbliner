@@ -27,9 +27,9 @@ with open(sys.argv[1], "r") as f:
 			if not found:
 				other_locs_no_match += 1
 
-print "Exact match:", exact_match
-print "Not covered by a star:", no_star
-print "Was one of the putative locations:", one_of_locs
-print "Other locations suggested, original not recovered:", other_locs_no_match
-print "Avg number of multimaps (only when >1 locations suggested):", sum(locs_len) * 1.0 / len(locs_len)
+print( "Exact match:", exact_match)
+print( "Not covered by a star:", no_star)
+print( "Was one of the putative locations:", one_of_locs)
+print( "Other locations suggested, original not recovered:", other_locs_no_match)
+print( "Avg number of multimaps (only when >1 locations suggested):", sum(locs_len) * 1.0 / len(locs_len) )
 			

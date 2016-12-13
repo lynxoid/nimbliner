@@ -59,7 +59,7 @@ def compute_basic_stats(in_path, out_path, margin=3):
     multimapped_no_true = 0
     with open(in_path, "r") as f_in:
         for line in f_in:
-            parts = line.strip().split("\t")
+            parts = line.strip().split(" ")
 
             if len(parts) < 2:
                 unmapped += 1
