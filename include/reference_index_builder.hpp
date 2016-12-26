@@ -13,6 +13,7 @@
 #include <boost/timer.hpp>
 
 #include "FastaReader.h"
+#include "anchor_index.hpp"
 #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
@@ -161,33 +162,12 @@ public:
 
 		cerr << "(" << anchors.size() << " anchors)" << endl;
 
-		write_anchors(anchors);
+		nimble::AnchorIndex::write_anchors(anchors);
 		// switch between different implementations of the index
 		write_index(kmer_counts);
 		// bit tree representation will take less space
 		// write_bit_tree_index(kmer_locations, K);
 		return;
-	}
-
-    /*
-	 * TODO: sort and delta encode offsets; write out to a gzip
-	 */
-	void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors) {
-		cerr << "saving anchors" << endl;
-
-		ofstream star_locations_out("anchors.txt");
-		auto start = std::chrono::system_clock::now();
-
-		for (auto & anchor_pair : anchors) {
-			star_locations_out << anchor_pair.first << " ";
-			for (auto loc : anchor_pair.second) star_locations_out << loc << " ";
-			star_locations_out << endl;
-		}
-		star_locations_out.close();
-
-		auto end = std::chrono::system_clock::now();
-		std::chrono::duration<double> elapsed_seconds_str = end - start;
-	    cerr << "Saving anchors took: " << elapsed_seconds_str.count() << "s" << endl;
 	}
 
     /*

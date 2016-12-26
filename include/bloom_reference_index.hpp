@@ -19,6 +19,7 @@
 
 #include "BaseBloomFilter.hpp"
 #include "reference_index.hpp"
+#include "anchor_index.hpp"
 #include "definitions.hpp"
 
 using namespace std;
@@ -47,7 +48,7 @@ class BloomReferenceIndex : public ReferenceIndex {
 	shared_ptr<BaseBloomFilter> _bf;
 
 	// anchor locations (stars)
-	shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _anchors;
+    nimble::AnchorIndex _anchorIndex;
 
 	// kmer length
 	int K = 0;
@@ -161,7 +162,7 @@ public:
 	void readIndex(const string & kmers_path, const string & stars_path) {
 		this->K = 0;
 		_bf = readKmers_bf_faster(kmers_path);
-		_anchors = readStarLocations(stars_path, this->K);
+        _anchorIndex.readStarLocations(stars_path, this->K);
 	}
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */
@@ -171,24 +172,13 @@ public:
 
 	/* returns true is this kmer is found among anchors, false otherwise*/
 	bool is_anchor(const bin_kmer_t kmer) const {
-		return _anchors->find(kmer) != _anchors->end();
+		// return _anchors->find(kmer) != _anchors->end();
+        _anchorIndex.is_anchor(kmer);
 	}
-
-	/* allow anchors w/ 1 mm  */
-	// bool has_anchor(const kmer_t & kmer, const unsigned char K = 20) const {
-	// 	// TODO: generate all variants of this kmer
-	// 	// and try them all
-	// 	// TODO: SIMD optimization
-	// 	shared_ptr<vector<kmer_t>> kmer_variants = generate_all_variants(kmer, K, 1);
-	// 	for (const kmer_t & kmer : *kmer_variants) {
-	// 		if (_anchors->find(kmer) != _anchors->end()) return true;
-	// 	}
-	// 	return false;
-	// }
 
 	// TODO: what does this & do? do we use it?
 	vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
-		return (*_anchors)[kmer];
+		return _anchorIndex.get_anchor_locations(kmer);
 	}
 };
 
