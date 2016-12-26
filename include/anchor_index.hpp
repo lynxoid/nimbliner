@@ -62,7 +62,7 @@ public:
 	 */
     // TODO: rename to readAnchors
 	void readStarLocations(const string & path, const int K) {
-		cerr << "reading anchors from " << path << endl;
+		cerr << "[AnchorIndex] reading anchors from " << path << endl;
 		auto start = std::chrono::system_clock::now();
 
 		_anchors = shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>>(
@@ -71,7 +71,7 @@ public:
 		ifstream in(path);
 
         if (!in) {
-            cerr << "[ERROR] Could not open anchor index file " << path << endl;
+            cerr << "[ERROR] [AnchorIndex] Could not open anchor index file " << path << endl;
             exit(1);
         }
 
@@ -100,7 +100,7 @@ public:
 
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
-		cerr << "reading anchors took: " << elapsed_seconds.count() << "s" << endl;
+		cerr << "[AnchorIndex] reading anchors took: " << elapsed_seconds.count() << "s" << endl;
 		// return kmer_locations;
 	}
 
@@ -108,7 +108,7 @@ public:
 	 * TODO: sort and delta encode offsets; write out to a gzip
 	 */
 	static void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors) {
-		cerr << "saving anchors" << endl;
+		cerr << "[AnchorIndex] saving anchors" << endl;
 
 		ofstream star_locations_out("anchors.txt");
 		auto start = std::chrono::system_clock::now();
@@ -122,7 +122,7 @@ public:
 
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds_str = end - start;
-	    cerr << "Saving anchors took: " << elapsed_seconds_str.count() << "s" << endl;
+	    cerr << "[AnchorIndex] Saving anchors took: " << elapsed_seconds_str.count() << "s" << endl;
 	}
 };
 

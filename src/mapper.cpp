@@ -74,12 +74,12 @@ int main(int argc, char * argv []) {
 	input_parameters ip = parse_arguments(argc, argv);
 
 	{
-		shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
+		shared_ptr<ReferenceIndex> index = shared_ptr<nimble::BloomReferenceIndex>(new nimble::BloomReferenceIndex() );
 		// shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
 		index->readIndex(ip.input_index, ip.input_anchors);
 
-		cerr << "========================" << endl;
-		cerr << "CAN NOW TEST THE MAPPING" << endl;
+		cerr << "==============================" << endl;
+		cerr << "MAPPING READS TO THE REFERENCE" << endl;
 		// end = std::chrono::system_clock::now();
 		// elapsed_seconds = end-start;
 	    // cerr << "setup took: " << elapsed_seconds.count() << "s" << endl;

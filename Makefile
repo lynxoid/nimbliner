@@ -41,4 +41,4 @@ run_sample: nb-sample
 	./$(BIN)/sample -m 3 -n 10000000 -l 100 -i /data/human/GRCh38/chr20.fna -o data/output_mismatches/chr20/sampled/sampled_100_10000000_m=3.0pct_d=0.0pct.fa
 
 tests: create-dir
-	g++ $(FLAGS) -o $(BIN)/nb_tests $(INCLUDE) tests/anchor_index_test.cpp -lbf
+	g++ $(FLAGS) -o $(BIN)/nb_tests $(INCLUDE) tests/*_test.cpp -lbf

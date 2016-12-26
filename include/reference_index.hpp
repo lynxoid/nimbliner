@@ -25,7 +25,10 @@ public:
 
 	ReferenceIndex() {};
 
-	virtual int getK() =0;
+	virtual uint getK() =0;
+
+    // return the number of kmers in the index (not anchors)
+    virtual uint64_t size() =0;
 
 	// read kmers (or pdBG describing the reference) and anchor locations
 	virtual void readIndex(const string & kmers_path, const string & stars_path) =0;
@@ -36,7 +39,6 @@ public:
 	/* returns true is this kmer is found among anchors, false otherwise*/
 	virtual bool is_anchor(const bin_kmer_t kmer) const =0;
 
-	// TODO: what does this & do? do we use it?
 	virtual vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const =0;
 
 };

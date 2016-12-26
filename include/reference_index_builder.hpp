@@ -14,6 +14,7 @@
 
 #include "FastaReader.h"
 #include "anchor_index.hpp"
+#include "bloom_reference_index.hpp"
 #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
@@ -164,48 +165,13 @@ public:
 
 		nimble::AnchorIndex::write_anchors(anchors);
 		// switch between different implementations of the index
-		write_index(kmer_counts);
+        // nimble::ReferenceIndex::write_index(kmer_counts);
+		nimble::BloomReferenceIndex::write_index(kmer_counts);
 		// bit tree representation will take less space
 		// write_bit_tree_index(kmer_locations, K);
 		return;
 	}
 
-    /*
-	 */
-	void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts) {
-		cerr << "saving all kmers" << endl;
-		auto start = std::chrono::system_clock::now();
-
-		ofstream all_kmers("all_kmers.txt");
-		// TODO: write kmer size
-
-		// write hte # of kmers to expect
-		all_kmers << kmer_counts.size() << endl;
-
-		// TODO
-		// cerr << "Sorting kmers" << endl;
-		// std::sort(kmer_locations->begin(), kmer_locations->end(), [](pair<> a, pair<> b) {
-			// return a.first < b.first;
-		// } );
-		// cerr << "Sorting took " << t.elapsed() << " s" << endl;
-		// t.restart();
-
-		int i = 0;
-		while (kmer_counts.size() > 0) {
-			auto it = kmer_counts.begin();
-			all_kmers << it->first << endl;
-			kmer_counts.erase(it);
-			i++;
-		}
-		all_kmers.close();
-		cerr << "wrote " << i << " kmers" << endl;
-		assert(kmer_counts.size() == 0);
-
-		auto end = std::chrono::system_clock::now();
-		std::chrono::duration<double> elapsed_seconds_str = end - start;
-	    cerr << "Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
-		kmer_counts.clear();
-	}
 };
 
 #endif // INDEX_BUILDER
