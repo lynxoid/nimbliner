@@ -42,19 +42,3 @@ TEST_CASE("AnchorIndex: read anchors", "[readers]")
         }
     }
 }
-
-// TEST_CASE("BloomReferenceIndex: read index", "[readers]")
-// {
-//     SECTION("")
-//     {
-//
-//     }
-// }
-
-// TEST_CASE("ReferenceIndex: build index", "[builder]")
-// {
-//     SECTION("build index")
-//     {
-//
-//     }
-// }
