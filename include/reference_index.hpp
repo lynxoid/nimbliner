@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 
 // #include "BaseBloomFilter.hpp"
 // #include "bit_tree_binary.hpp"
@@ -63,6 +64,8 @@ public:
 	    		int location = stoi(pos);
 	    		(*kmer_locations)[bin_kmer].push_back(location);
 			}
+            // TODO: this should be done during anchor selection phase, not here
+            // remove anchors that occur more than 10K times
 			if ((*kmer_locations)[bin_kmer].size() > 10000) {
 				cerr << nimble::mer_binary_to_string(bin_kmer, K) << " " <<
 					(*kmer_locations)[bin_kmer].size() << endl;

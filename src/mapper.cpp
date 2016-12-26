@@ -10,7 +10,7 @@
 #include <tclap/CmdLine.h>
 
 // #include "FastaReader.h"
-#include "SeqBFUtil.hpp"
+// #include "SeqBFUtil.hpp"
 
 #include "reference_index.hpp"
 #include "bloom_reference_index.hpp"

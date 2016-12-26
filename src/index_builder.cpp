@@ -8,7 +8,7 @@
 
 #include <tclap/CmdLine.h>
 #include "FastaReader.h"
-#include "SeqBFUtil.hpp"
+// #include "SeqBFUtil.hpp"
 
 // #include "reference_index.hpp"
 #include "reference_index_builder.hpp"
@@ -29,7 +29,7 @@ input_parameters parse_args(int argc, char * argv[]) {
                 true, " ", "string");
         cmd.add( input );
 
-	TCLAP::ValueArg<int> klen("k","kmer-length","Seed length to sample", 
+	TCLAP::ValueArg<int> klen("k","kmer-length","Seed length to sample",
                 true, 20, "int");
         cmd.add( klen );
 
@@ -42,7 +42,7 @@ input_parameters parse_args(int argc, char * argv[]) {
 
 ////////////////////////////////////////////////////////
 //
-// Improvements: 
+// Improvements:
 //	- skip flanking kmers (expect low quals on the ends of the reads)
 //
 ////////////////////////////////////////////////////////

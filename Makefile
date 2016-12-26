@@ -10,7 +10,7 @@ FLAGS=-O3 -std=c++11
 # DEBUGFLAGS=-g -fno-inline
 # DEBUGFLAGS=-g
 
-all: create-dir nb-sample nb-mapper nb-indexer nb-bit_tree
+all: create-dir nb-sample nb-mapper nb-indexer nb-bit_tree tests
 
 create-dir:
 	mkdir -p $(BIN)
@@ -39,3 +39,6 @@ run_test: nb-mapper
 
 run_sample: nb-sample
 	./$(BIN)/sample -m 3 -n 10000000 -l 100 -i /data/human/GRCh38/chr20.fna -o data/output_mismatches/chr20/sampled/sampled_100_10000000_m=3.0pct_d=0.0pct.fa
+
+tests: create-dir
+	g++ $(FLAGS) -o $(BIN)/nb_tests $(INCLUDE) tests/reference_index_builder_test.cpp -lbf

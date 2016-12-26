@@ -12,8 +12,26 @@
 
 #include <boost/timer.hpp>
 
+#include "FastaReader.h"
 #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
+
+////////////////////////////////////////////////////////////////
+// parse a fasta file and return vector of reads
+////////////////////////////////////////////////////////////////
+vector<string> parseFasta(string const & path) {
+    vector<string> reads;
+    FastaReader fr(path.c_str());
+    kseq_t * seq;
+    size_t cnt = 0;
+    while ( (seq = fr.nextSequence() ) ) {
+      // cerr << seq->seq.s << endl;
+      reads.push_back(seq->seq.s);
+      cnt++;
+    }
+    cerr << "(" << cnt << " reads) ";
+    return reads;
+}
 
 class ReferenceIndexBuilder {
 
@@ -21,58 +39,6 @@ class ReferenceIndexBuilder {
 	// Kingsford (de Bruijn cover), Pachter (kallisto)
 	void build_index2() {
 
-	}
-
-	/*
-	 */
-	void write_anchors(unordered_set<kmer_t> & star_kmers,
-		const unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
-		cerr << "saving anchors" << endl;
-
-		ofstream star_locations_out("anchors.txt");
-		auto start = std::chrono::system_clock::now();
-
-		for (auto star : star_kmers) {
-			star_locations_out << star << " ";
-			auto it = kmer_locations.find(star);
-			assert(it != kmer_locations.end());
-			for (auto loc : it->second) star_locations_out << loc << " ";
-			star_locations_out << endl;
-			// all_kmers << star << endl;
-			// kmer_locations.erase(star);
-		}
-		star_locations_out.close();
-
-		auto end = std::chrono::system_clock::now();
-		std::chrono::duration<double> elapsed_seconds_str = end - start;
-	    cerr << "Saving anchors took: " << elapsed_seconds_str.count() << "s" << endl;
-	}
-
-	/*
-	 */
-	void write_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations) {
-		cerr << "saving all kmers" << endl;
-		auto start = std::chrono::system_clock::now();
-
-		ofstream all_kmers("all_kmers.txt");
-		// write hte # of kmers to expect
-		all_kmers << kmer_locations.size() << endl;
-
-		int i = 0;
-		while (kmer_locations.size() > 0) {
-			auto it = kmer_locations.begin();
-			all_kmers << it->first << endl;
-			kmer_locations.erase(it);
-			i++;
-		}
-		all_kmers.close();
-		cerr << "wrote " << i << " kmers" << endl;
-		assert(kmer_locations.size() == 0);
-
-		auto end = std::chrono::system_clock::now();
-		std::chrono::duration<double> elapsed_seconds_str = end - start;
-	    cerr << "Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
-		kmer_locations.clear();
 	}
 
 	void write_bit_tree_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations,
@@ -109,39 +75,156 @@ public:
 	// given a path to the reference and a kmer length K, parse the reference
 	// fasta, obtain all kmers and select anchors using a heuristic
 	// write kmers to an *.index file and write anchors to *.star file.
-	void buildIndex(const string & ref_path, const uint K) {
-		auto chromosomes = parseFasta(ref_path);
-		// count kmers, record their locations
-		unordered_map<kmer_t, vector<genomic_coordinate_t>> kmer_locations;
+	// void buildIndex(const string & ref_path, const uint K) {
+	// 	auto chromosomes = parseFasta(ref_path);
+	// 	// count kmers, record their locations
+	// 	unordered_map<kmer_t, vector<genomic_coordinate_t>> kmer_locations;
+	//
+	// 	unordered_set<kmer_t> star_kmers;
+	// 	assert(chromosomes.size() > 0);
+	// 	auto chr = chromosomes[0];
+	//
+	// 	int c = 0;
+	// 	cerr << "gathering all kmers... ";
+	// 	for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
+	// 		kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
+	// 		if ( kmer_locations.find(kmer) == kmer_locations.end() ) {
+	// 			kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
+	// 		}
+	// 		else {
+	// 			 // can delta encode here and fit into less space technically
+	// 			kmer_locations[kmer].push_back(i);
+	// 		}
+	// 		// pick stars at every 50 bases
+	// 		if (i % 50 == 0) star_kmers.emplace(kmer);
+	// 		if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
+	// 	}
+	// 	cerr << "(" << kmer_locations.size() << " kmers)" << endl;
+	// 	cerr << "(" << star_kmers.size() << " anchors)" << endl;
+	//
+	// 	write_anchors(star_kmers, kmer_locations);
+	// 	// switch between different implementations of the index
+	// 	write_index(kmer_locations);
+	// 	// bit tree representation will take less space
+	// 	// write_bit_tree_index(kmer_locations, K);
+	// 	return;
+	// }
 
-		unordered_set<kmer_t> star_kmers;
+    /*
+     * build index in 2 passes
+     */
+	void buildIndex(const string & ref_path, const uint K) {
+        auto chromosomes = parseFasta(ref_path);
+
+		// naive counter
+		// TODO: use counting BF
+		unordered_map<kmer_t, uint8_t> kmer_counts;
 		assert(chromosomes.size() > 0);
+		// TODO: index all chromosomes given as input
 		auto chr = chromosomes[0];
 
 		int c = 0;
-		cerr << "gathering all kmers... ";
+		cerr << "Gathering kmers: pass 1" << endl;
 		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
 			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
-			if ( kmer_locations.find(kmer) == kmer_locations.end() ) {
-				kmer_locations.emplace(kmer, vector<genomic_coordinate_t>{i});
+			if ( kmer_counts.find(kmer) == kmer_counts.end() ) {
+					kmer_counts[kmer] = 1;
 			}
 			else {
 				// can delta encode here and fit into less space technically
-				kmer_locations[kmer].push_back(i);
+				if (kmer_counts[kmer] < 255)
+					kmer_counts[kmer]++;
+				// else -- do not increment to avoid overflow
 			}
-			// pick stars at every 50 bases
-			if (i % 50 == 0) star_kmers.emplace(kmer);
 			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
 		}
-		cerr << "(" << kmer_locations.size() << " kmers)" << endl;
-		cerr << "(" << star_kmers.size() << " anchors)" << endl;
+		cerr << "(" << kmer_counts.size() << " kmers)" << endl;
+		cerr << "Gathering kmers: pass 2" << endl;
 
-		write_anchors(star_kmers, kmer_locations);
+		const int x = 5;
+
+		// TODO: can keep linked lists since expect these lists to be short
+		unordered_map<kmer_t, list<genomic_coordinate_t>	> anchors;
+		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
+			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
+			if (kmer_counts[kmer] < x) {
+				// add to anchors
+				if (anchors.find(kmer) == anchors.end() ) {
+					anchors.emplace(kmer, list<genomic_coordinate_t>{i});
+				}
+				else
+					anchors[kmer].push_back(i);
+				i += 50;
+			}
+			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
+		}
+
+		cerr << "(" << anchors.size() << " anchors)" << endl;
+
+		write_anchors(anchors);
 		// switch between different implementations of the index
-		write_index(kmer_locations);
+		write_index(kmer_counts);
 		// bit tree representation will take less space
 		// write_bit_tree_index(kmer_locations, K);
 		return;
+	}
+
+    /*
+	 * TODO: sort and delta encode offsets; write out to a gzip
+	 */
+	void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors) {
+		cerr << "saving anchors" << endl;
+
+		ofstream star_locations_out("anchors.txt");
+		auto start = std::chrono::system_clock::now();
+
+		for (auto & anchor_pair : anchors) {
+			star_locations_out << anchor_pair.first << " ";
+			for (auto loc : anchor_pair.second) star_locations_out << loc << " ";
+			star_locations_out << endl;
+		}
+		star_locations_out.close();
+
+		auto end = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed_seconds_str = end - start;
+	    cerr << "Saving anchors took: " << elapsed_seconds_str.count() << "s" << endl;
+	}
+
+    /*
+	 */
+	void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts) {
+		cerr << "saving all kmers" << endl;
+		auto start = std::chrono::system_clock::now();
+
+		ofstream all_kmers("all_kmers.txt");
+		// TODO: write kmer size
+
+		// write hte # of kmers to expect
+		all_kmers << kmer_counts.size() << endl;
+
+		// TODO
+		// cerr << "Sorting kmers" << endl;
+		// std::sort(kmer_locations->begin(), kmer_locations->end(), [](pair<> a, pair<> b) {
+			// return a.first < b.first;
+		// } );
+		// cerr << "Sorting took " << t.elapsed() << " s" << endl;
+		// t.restart();
+
+		int i = 0;
+		while (kmer_counts.size() > 0) {
+			auto it = kmer_counts.begin();
+			all_kmers << it->first << endl;
+			kmer_counts.erase(it);
+			i++;
+		}
+		all_kmers.close();
+		cerr << "wrote " << i << " kmers" << endl;
+		assert(kmer_counts.size() == 0);
+
+		auto end = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed_seconds_str = end - start;
+	    cerr << "Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
+		kmer_counts.clear();
 	}
 };
 

@@ -9,6 +9,7 @@
 #define ALIGNER
 
 // #include "bloom_reference_index.hpp"
+#include "FastaReader.h"
 #include "reference_index.hpp"
 #include "definitions.hpp"
 
