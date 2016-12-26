@@ -35,10 +35,18 @@ public:
 
     }
 
+    /*
+     * returns True is the kmer is in the anchor set; false otherwise
+     */
     bool is_anchor(const bin_kmer_t kmer) const {
 		return _anchors->find(kmer) != _anchors->end();
     }
 
+    /*
+     * returns a list of genomic_coordinate_t locations corresponding to all
+     * occurrences of this anchor. If kmer is not an anchor, returns an emplty
+     * vector
+     */
     vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
         return (*_anchors)[kmer];
     }
