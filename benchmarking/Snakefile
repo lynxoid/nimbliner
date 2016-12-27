@@ -5,7 +5,7 @@
 # darya.filippova@gmail.com
 #
 
-configfile: "experiments.json"
+# configfile: "benchmarking/experiments.json"
 
 include: "snakes/data.snk"
 include: "snakes/bwa_alignments.snk"
@@ -20,19 +20,29 @@ big_set = {}
 
 TIME_CMD = "/usr/bin/time -lp nice "
 
-# one rule to rule them all
-rule run_pipeline:
+rule run_human_genome_real_data:
+    input:
+        expand("data/human_genome_real/k_{K}/plots/main.pdf", K=config["K"])
+
+rule run_human_genome_simulated_large:
+    input:
+		expand("data/human_genome_simulated_large/k_{K}/plots/main.pdf", K=config["K"])
+
+rule run_human_genome_simulated_small:
+    input:
+        expand("data/human_genome_simulated_small/k_{K}/plots/main.pdf", K=config["K"])
+
+# test data: small, simulated data on a single chromosome 20 for easy testing
+rule run_test_data:
 	input:
-		expand("{work_dir}/{reference}/k_{K}/plots/main.pdf", 
-			work_dir=config["work_dir"], reference=config["reference"],
-			K=config["K"])
+		expand("data/test_data/k_{K}/plots/main.pdf", K=config["K"])
 
 
 # Compile a full pdf report
 rule compile_pdf_report:
 	input:
-		# "{work_dir}/{reference}/k_{K}/plots/comparison_table.tex", 
-		# expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table.tex", 
+		# "{work_dir}/{reference}/k_{K}/plots/comparison_table.tex",
+		# expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table.tex",
 			# method=["bwa", "nimbliner"]),
 		expand("{{work_dir}}/{{reference}}/k_{{K}}/plots/{method}_comparison_table_all.tex",
 			method=["bwa", "nimbliner"]),
@@ -51,8 +61,6 @@ rule get_text_template_for_main:
 		"{work_dir}/{reference}/k_{K}/plots/main.tex"
 	shell:
 		"cp {input} {output}"
-
-
 
 # Make a comparison table for reads w/ mismatches
 rule make_comparison_table_for_aligner:
@@ -121,8 +129,8 @@ rule align_reads_nimbliner:
 rule build_index:
 	input:
 		code=["include/reference_index_builder.hpp", "src/sample_reads.cpp"],
-		ref=expand("{input}/{reference}.fa", 
-			input=config["input_dir"], 
+		ref=expand("{input}/{reference}.fa",
+			input=config["input_dir"],
 			reference=config["reference"]),
 		binary="bin/indexer"
 	log:

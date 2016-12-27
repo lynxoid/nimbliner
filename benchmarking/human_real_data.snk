@@ -1,0 +1,36 @@
+
+rule download_batch_illumina_data:
+    input:
+        expand("data/human_genome_real/input/{sample}.fa",
+            sample = ["", ""])
+
+"""
+Download illumina data one at a time
+"""
+rule download_single_illumina_dataset:
+    output:
+        expand("data/human_genome_real/input/{sample}.fa.gz")
+    run:
+        "fastq-dump --fasta --gzip {wildcards.sample};"
+		"mv {wildcards.sample}.fa.gz {output}"
+
+
+"""
+Download PacBio lambda virus data
+"""
+rule download_pacbio_data:
+	output:
+		expand("data/input/pb/{sample}", sample=["ERR1424485"])
+	shell:
+		"fastq-dump --fastq --gzip {wildcards.sample};"
+		"mv {wildcards.sample}.fa.gz {output}"
+
+"""
+Download illumina NA128... WGS dataset
+"""
+rule download_illumina_wgs_data:
+	output:
+		expand("data/input/illumina/{sample}", sample=["ERR1423254"])
+	shell:
+		"fastq-dump --fasta --gzip {wildcards.sample};"
+		"mv {wildcards.sample}.fa.gz {output}"
