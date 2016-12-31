@@ -30,7 +30,6 @@ rule align_reads_bwa:
 		1
 	log:
 		"{work_dir}/{reference}/log/bwa/align_{dataset}.log"
-	params: K=config["K"]
 	shell:
 		TIME_CMD + "bwa mem -t {threads} {params.index} {input.reads} 2> {log} | samtools view -Sb - > {output} "
 
@@ -38,19 +37,32 @@ rule align_reads_bwa:
 """
 Build index for bwa
 """
-rule build_bwa_index:
+# rule build_bwa_index:
+# 	input:
+# 		ref=expand("{input}/{reference}.fa")
+# 	params:
+# 		dir="{work_dir}/{reference}/index/bwa/{reference}",
+# 	output:
+# 		"{work_dir}/{reference}/index/bwa/{reference}.amb",
+# 		"{work_dir}/{reference}/index/bwa/{reference}.ann",
+# 		"{work_dir}/{reference}/index/bwa/{reference}.bwt",
+# 		"{work_dir}/{reference}/index/bwa/{reference}.pac",
+# 		"{work_dir}/{reference}/index/bwa/{reference}.sa"
+# 	log:
+# 		"{work_dir}/{reference}/index/bwa/build_index_{reference}.log"
+# 	shell:
+# 		TIME_CMD + "bwa index -p {params.dir} {input.ref} > {log} 2>&1"
+
+"""
+Build index for bwa
+"""
+rule build_bwa_index_test_data:
 	input:
-		ref=expand("{input}/{reference}.fa", 
-						input=config["input_dir"], 
-						reference=config["reference"]),
+		ref="~/dev/seq_data/hs_ref_GRCh38.p7_chr20.fa"
 	params:
-		dir="{work_dir}/{reference}/index/bwa/{reference}",
+		dir="data/test_data/chr20/index/bwa/{reference}",
 	output:
-		"{work_dir}/{reference}/index/bwa/{reference}.amb",
-		"{work_dir}/{reference}/index/bwa/{reference}.ann",
-		"{work_dir}/{reference}/index/bwa/{reference}.bwt",
-		"{work_dir}/{reference}/index/bwa/{reference}.pac",
-		"{work_dir}/{reference}/index/bwa/{reference}.sa"
+		expand("data/test_data/chr20/index/bwa/chr20.{type}", type=["amb", "ann", "bwt", "pac", "sa"] )
 	log:
 		"{work_dir}/{reference}/index/bwa/build_index_{reference}.log"
 	shell:

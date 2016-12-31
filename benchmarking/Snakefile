@@ -7,12 +7,11 @@
 
 # configfile: "benchmarking/experiments.json"
 
-include: "snakes/data.snk"
-include: "snakes/bwa_alignments.snk"
+include: "human_real_data.snk"
+include: "human_simulated_data.snk"
+include: "bwa_alignments.snk"
 
 import sys
-sys.path.append("py-src")
-
 
 small_set = {}
 
@@ -20,13 +19,14 @@ big_set = {}
 
 TIME_CMD = "/usr/bin/time -lp nice "
 
-rule run_human_genome_real_data:
-    input:
-        expand("data/human_genome_real/k_{K}/plots/main.pdf", K=config["K"])
+# rule run_human_genome_real_data:
+    # input:
+        # expand("data/human_genome_real/k_{K}/plots/main.pdf", K=config["K"])
 
-rule run_human_genome_simulated_large:
-    input:
-		expand("data/human_genome_simulated_large/k_{K}/plots/main.pdf", K=config["K"])
+
+# rule run_human_genome_simulated_large:
+    # input:
+		# expand("data/human_genome_simulated_large/k_{K}/plots/main.pdf", K=config["K"])
 
 rule run_human_genome_simulated_small:
     input:
@@ -35,7 +35,7 @@ rule run_human_genome_simulated_small:
 # test data: small, simulated data on a single chromosome 20 for easy testing
 rule run_test_data:
 	input:
-		expand("data/test_data/k_{K}/plots/main.pdf", K=config["K"])
+		expand("data/test_data/k_20/plots/main.pdf")
 
 
 # Compile a full pdf report
