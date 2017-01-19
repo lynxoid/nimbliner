@@ -1,6 +1,6 @@
 ## nimbliner - nimble aligner
 
-Fast and lightweight read aligner (experimental) [![CircleCI](https://circleci.com/gh/lynxoid/nimbliner.svg?style=shield&circle-token=:circle-token)]
+Fast and lightweight read aligner (experimental) ![CircleCI](https://circleci.com/gh/lynxoid/nimbliner.svg?style=shield&circle-token=:circle-token)
 
 ###
 
