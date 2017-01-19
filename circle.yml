@@ -1,3 +1,19 @@
 machine:
   services:
     - docker
+
+# build the docker image 
+dependencies:
+  override:
+    - docker build --rm=false -t lynxoid/nimbliner -f docker/Dockerfile .
+    
+test:
+  override:
+    - docker run lynxoid/nimbliner make tests; ./bin/tests
+    
+deployment:
+  hub:
+    branch: master
+    commands:
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker push lynxoid/nimbliner
