@@ -3,7 +3,6 @@
 *.sh
 *.sh
 *.profile
-Makefile
 README.md
 benchmarking/*
 bin/*
