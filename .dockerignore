@@ -1,10 +1,14 @@
 *.txt
 *.json
 *.sh
-notes
+*.sh
+*.profile
+Makefile
+README.md
+benchmarking/*
+bin/*
+notes/*
 data/*
 related_work/*
 .snakemake/*
 .git/*
-*.sh
-*.profile
