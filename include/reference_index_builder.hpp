@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <algorithm>
+#include <list>
 
 #include <boost/timer.hpp>
 
@@ -43,6 +44,7 @@ class ReferenceIndexBuilder {
 
 	}
 
+
 	void write_bit_tree_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations,
 			const uint k) {
 		// dump to a vector
@@ -55,20 +57,24 @@ class ReferenceIndexBuilder {
 			kmer_locations.erase(it);
 		}
 		assert(kmer_locations.size() == 0);
+		cerr << "Dump to vector: " << t.elapsed() << "s" << endl;
 		t.restart();
+
 		cerr << "Sorting kmers" << endl;
 		std::sort(kmers->begin(), kmers->end() );
 		cerr << "Sorting took " << t.elapsed() << " s" << endl;
 		t.restart();
+
 		cerr << "encoding" << endl;
 		BitTreeBin bit_tree;
 		bit_tree.encode(kmers, k);
 		cerr << "encoding took " << t.elapsed() << " s" << endl;
 		t.restart();
+
 		cerr << "Writing to a binary file" << endl;
 		// bit_tree.write(input_file + ".btbin");
 		bit_tree.write("index.btbin");
-		cerr << "(" << t.elapsed() << " s)" << endl;
+		cerr << "Writing BitTree took " << t.elapsed() << " s" << endl;
 	}
 
 public:

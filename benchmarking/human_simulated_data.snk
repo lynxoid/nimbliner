@@ -1,0 +1,45 @@
+# download real data
+# generate simulated data with various parameters
+
+"""
+Run the sampling with settings for indels and mismatche rates
+"""
+rule sample_reference_indels:
+	input:
+		binary="bin/sample"
+        # ref="/Users/lynxoid/data/reference/human/GRCh38/chr20.fna.gz"
+	output:
+		"{work_dir}/chr20/sampled/sampled_{R}_{N}_m={mm_rate}pct_d={d_rate}pct.fa"
+	# log:
+		# "{work_dir}/chr20/log/sample_{R}_{N}_m0_d{d_rate}.log"
+	shell:
+		"./{input.binary} -l {wildcards.R} -n {wildcards.N} -i {input.ref} -m {wildcards.mm_rate} -d {wildcards.d_rate} -o {output} 2> {log};"
+
+"""
+Compile if any of the input file have changed
+"""
+rule compile_sampler:
+	input:
+		"src/sample_reads.cpp",
+	output:
+		"bin/sample"
+	shell:
+		"rm -f {output}; make sample"
+
+"""
+Links to the rule download_human_chr to download all chromos
+"""
+rule download_all_human_chromos:
+	input:
+		expand("/Users/lynxoid/data/reference/human/GRCh38/chr{chromo}.fna.gz", chromo = list(range(1, 22)) + ["X", "Y"])
+
+"""
+Download human chromosome (parametrized)
+"""
+rule download_human_chr:
+	params:
+		url="ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr"
+	output:
+		"/Users/lynxoid/data/reference/human/GRCh38/chr{chromo}.fna.gz"
+	shell:
+		"wget {params.url}{wildcards.chromo}.fna.gz; mv chr{wildcards.chromo}.fna.gz {output}"

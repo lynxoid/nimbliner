@@ -1,9 +1,9 @@
 BIN=bin
 SRC=src
 INCLUDE=-I /usr/local/include/ -I include/ # -I $(HOME)/tbb2017_20160916oss/include/
-# BOOST_INCLUDE=-I /home/ubuntu/boost_1.62.0/
+# BOOST_INCLUDE=-I /usr/include/
 LIB=-L /usr/local/lib/ # -L $(HOME)/tbb2017_20160916oss/lib/
-BOOST_LIB=
+BOOST_LIB=/usr/lib/x86_64-linux-gnu/
 FLAGS=-O3 -std=c++11
 # DEBUGFLAGS=-DWITHGPERFTOOLS -g -fno-inline
 # enable debug symbols and no inlining for better call stack info

@@ -1,0 +1,7 @@
+true_single: 782
+mismapped: 12
+unmapped: 206
+multimapped_no_true: 0
+multimapped_has_true: 0
+mapping rate: 0.794
+recovered at least 1 correct: 0.782

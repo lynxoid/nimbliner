@@ -2,6 +2,9 @@
 *.json
 *.sh
 notes
-data
-related_work
+data/*
+related_work/*
+.snakemake/*
+.git/*
+*.sh
 *.profile
