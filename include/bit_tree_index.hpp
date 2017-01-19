@@ -30,7 +30,7 @@ class BitTreeIndex : public ReferenceIndex {
 
 public:
 
-	int getK() {return K;}
+	uint getK() {return K;}
 
 	// read kmers (or pdBG describing the reference) and anchor locations
 	void readIndex(const string & kmers_path, const string & stars_path) {

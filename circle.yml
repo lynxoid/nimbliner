@@ -2,15 +2,15 @@ machine:
   services:
     - docker
 
-# build the docker image 
+# build the docker image
 dependencies:
   override:
     - docker build --rm=false -t lynxoid/nimbliner -f docker/Dockerfile .
-    
+
 test:
   override:
-    - docker run lynxoid/nimbliner make tests; ./bin/tests
-    
+    - docker run -v $PWD/data:/nimbliner/data/ lynxoid/nimbliner ./bin/nb_tests
+
 deployment:
   hub:
     branch: master
