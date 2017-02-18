@@ -11,8 +11,6 @@ RUN apt-get update && apt-get install -y wget \
   cmake \
   libboost-all-dev
 
-# RUN which g++ && g++ --version
-
 # install tclap
 RUN wget https://sourceforge.net/projects/tclap/files/tclap-1.2.1.tar.gz && \
   tar -xvzf tclap-1.2.1.tar.gz && \
@@ -29,7 +27,7 @@ ENV LD_LIBRARY_PATH /usr/local/lib/
 
 COPY . /nimbliner/
 
-RUN cd /nimbliner && \
+RUN cd /nimbliner/ && \
   make && make install
 
 WORKDIR /nimbliner
