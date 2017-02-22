@@ -34,11 +34,5 @@ clean:
 install:
 	cp $(BIN)/* /usr/local/bin/
 
-run_test: nb-mapper
-	./$(BIN)/mapper 20 data/output_mismatches/chr20/sampled/sampled_100_1000000.fa data/output_mismatches/chr20/index/chr20.index data/output_mismatches/chr20/index/chr20.star;
-
-run_sample: nb-sample
-	./$(BIN)/sample -m 3 -n 10000000 -l 100 -i /data/human/GRCh38/chr20.fna -o data/output_mismatches/chr20/sampled/sampled_100_10000000_m=3.0pct_d=0.0pct.fa
-
 tests: create-dir
 	g++ $(FLAGS) -o $(BIN)/nb_tests $(INCLUDE) tests/*_test.cpp -lbf
