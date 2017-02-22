@@ -107,10 +107,12 @@ public:
     /*
 	 * TODO: sort and delta encode offsets; write out to a gzip
 	 */
-	static void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors) {
+	static void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors,
+        const string & output_prefix) {
 		cerr << "[AnchorIndex] saving anchors" << endl;
 
-		ofstream star_locations_out("anchors.txt");
+		ofstream star_locations_out(output_prefix + ".anchors");
+        // TODO: check if can write
 		auto start = std::chrono::system_clock::now();
 
 		for (auto & anchor_pair : anchors) {

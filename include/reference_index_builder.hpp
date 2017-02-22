@@ -121,7 +121,8 @@ public:
     /*
      * build index in 2 passes
      */
-	void buildIndex(const string & ref_path, const uint K) {
+	void buildIndex(const string & ref_path, const string & output_prefix,
+        const uint K) {
         auto chromosomes = parseFasta(ref_path);
 
 		// naive counter
@@ -169,10 +170,10 @@ public:
 
 		cerr << "(" << anchors.size() << " anchors)" << endl;
 
-		nimble::AnchorIndex::write_anchors(anchors);
+		nimble::AnchorIndex::write_anchors(anchors, output_prefix);
 		// switch between different implementations of the index
         // nimble::ReferenceIndex::write_index(kmer_counts);
-		nimble::BloomReferenceIndex::write_index(kmer_counts);
+		nimble::BloomReferenceIndex::write_index(kmer_counts, output_prefix);
 		// bit tree representation will take less space
 		// write_bit_tree_index(kmer_locations, K);
 		return;

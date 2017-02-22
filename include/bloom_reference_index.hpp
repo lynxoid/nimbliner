@@ -205,15 +205,17 @@ public:
      * Writes all kmers in the index in the format that is agreed upon between
      * this function and readIndex()
      */
-    static void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts) {
+    static void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts,
+        const string & output_prefix) {
 		cerr << "[BloomFilterIndex] writing index kmers" << endl;
 		auto start = std::chrono::system_clock::now();
 
-		ofstream all_kmers("all_kmers.txt");
-		// TODO: write kmer size K
+		ofstream all_kmers(output_prefix + ".idx");
+        // TODO: check that can write
 
-		// write hte # of kmers to expect
+		// write the # of kmers to expect
 		all_kmers << kmer_counts.size() << endl;
+        // TODO: write out the K -- kmer length
 
 		// TODO
 		// cerr << "Sorting kmers" << endl;
@@ -224,6 +226,7 @@ public:
 		// t.restart();
 
 		int i = 0;
+        // write and prune
 		while (kmer_counts.size() > 0) {
 			auto it = kmer_counts.begin();
 			all_kmers << it->first << endl;
