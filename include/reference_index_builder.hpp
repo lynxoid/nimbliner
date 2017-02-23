@@ -13,8 +13,28 @@
 
 #include <boost/timer.hpp>
 
+#include "FastaReader.h"
+#include "anchor_index.hpp"
+#include "bloom_reference_index.hpp"
 #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
+
+////////////////////////////////////////////////////////////////
+// parse a fasta file and return vector of reads
+////////////////////////////////////////////////////////////////
+vector<string> parseFasta(string const & path) {
+    vector<string> reads;
+    FastaReader fr(path.c_str());
+    kseq_t * seq;
+    size_t cnt = 0;
+    while ( (seq = fr.nextSequence() ) ) {
+      // cerr << seq->seq.s << endl;
+      reads.push_back(seq->seq.s);
+      cnt++;
+    }
+    cerr << "(" << cnt << " reads) ";
+    return reads;
+}
 
 class ReferenceIndexBuilder {
 
@@ -24,63 +44,6 @@ class ReferenceIndexBuilder {
 
 	}
 
-	/*
-	 * TODO: sort and delta encode offsets; write out to a gzip
-	 */
-	void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors) {
-		cerr << "saving anchors" << endl;
-
-		ofstream star_locations_out("anchors.txt");
-		auto start = std::chrono::system_clock::now();
-
-		for (auto & anchor_pair : anchors) {
-			star_locations_out << anchor_pair.first << " ";
-			for (auto loc : anchor_pair.second) star_locations_out << loc << " ";
-			star_locations_out << endl;
-		}
-		star_locations_out.close();
-
-		auto end = std::chrono::system_clock::now();
-		std::chrono::duration<double> elapsed_seconds_str = end - start;
-	    cerr << "Saving anchors took: " << elapsed_seconds_str.count() << "s" << endl;
-	}
-
-	/*
-	 */
-	void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts) {
-		cerr << "saving all kmers" << endl;
-		auto start = std::chrono::system_clock::now();
-
-		ofstream all_kmers("all_kmers.txt");
-		// TODO: write kmer size
-
-		// write hte # of kmers to expect
-		all_kmers << kmer_counts.size() << endl;
-
-		// TODO
-		// cerr << "Sorting kmers" << endl;
-		// std::sort(kmer_locations->begin(), kmer_locations->end(), [](pair<> a, pair<> b) {
-			// return a.first < b.first;
-		// } );
-		// cerr << "Sorting took " << t.elapsed() << " s" << endl;
-		// t.restart();
-
-		int i = 0;
-		while (kmer_counts.size() > 0) {
-			auto it = kmer_counts.begin();
-			all_kmers << it->first << endl;
-			kmer_counts.erase(it);
-			i++;
-		}
-		all_kmers.close();
-		cerr << "wrote " << i << " kmers" << endl;
-		assert(kmer_counts.size() == 0);
-
-		auto end = std::chrono::system_clock::now();
-		std::chrono::duration<double> elapsed_seconds_str = end - start;
-	    cerr << "Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
-		kmer_counts.clear();
-	}
 
 	void write_bit_tree_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations,
 			const uint k) {
@@ -155,8 +118,12 @@ public:
 	// 	return;
 	// }
 
-	void buildIndex(const string & ref_path, const uint K) {
-		auto chromosomes = parseFasta(ref_path);
+    /*
+     * build index in 2 passes
+     */
+	void buildIndex(const string & ref_path, const string & output_prefix,
+        const uint K) {
+        auto chromosomes = parseFasta(ref_path);
 
 		// naive counter
 		// TODO: use counting BF
@@ -203,14 +170,14 @@ public:
 
 		cerr << "(" << anchors.size() << " anchors)" << endl;
 
-		write_anchors(anchors);
+		nimble::AnchorIndex::write_anchors(anchors, output_prefix);
 		// switch between different implementations of the index
-		write_index(kmer_counts);
+        // nimble::ReferenceIndex::write_index(kmer_counts);
+		nimble::BloomReferenceIndex::write_index(kmer_counts, output_prefix);
 		// bit tree representation will take less space
 		// write_bit_tree_index(kmer_locations, K);
 		return;
 	}
-
 
 };
 

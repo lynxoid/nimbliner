@@ -23,4 +23,4 @@ RUN wget https://github.com/mavam/libbf/archive/v0.1-beta.tar.gz && \
 
 ENV LD_LIBRARY_PATH /usr/local/lib/
 
-WORKDIR /nimbliner
+# WORKDIR /nimbliner

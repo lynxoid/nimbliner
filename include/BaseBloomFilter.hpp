@@ -2,6 +2,7 @@
 #define LIB_BASE_BLOOM_FILTER
 
 #include <string>
+#include <unordered_set>
 
 #include <bf.h>
 

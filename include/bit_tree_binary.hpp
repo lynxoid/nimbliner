@@ -125,11 +125,11 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////
 	shared_ptr<vector<kmer_type>> decode() {
 		shared_ptr<vector<kmer_type>> kmers(new vector<kmer_type>());
-		
+
 		// skip the first 1 -- it is the root
 		size_t index = bitstream->find_first() + 1;
 		// string alphabet = "ACGT";
-		
+
 		int branch = 0;
 		int depth = 0;
 		bin_kmer_t prefix = 0;
@@ -146,7 +146,7 @@ public:
 					// output some stats
 					if (kmers->size() % 1000000 == 0) cerr << kmers->size() << " ";
 					prefix = prefix >> 2;
-					
+
 					while (branch >= 3 && !branches.empty()) {
 							depth--;
 							branch = branches.top(); branches.pop();
@@ -188,8 +188,8 @@ public:
 		// pad with 0s at the end so that the tail does not get messed up when writing
 		bitstream->resize(bitstream->size() + size - tail);
 		*bitstream <<= (size - tail);
-		
-		// convert into a vector of block_types 
+
+		// convert into a vector of block_types
 		vector<boost::dynamic_bitset<>::block_type> OutIter;
 		to_block_range(*bitstream, back_inserter(OutIter) );
 		// iterate and write one block_type at a time
@@ -207,12 +207,12 @@ public:
 		ifstream f_in(fname, ios::binary | ios::in);
 		auto fsize = getFileLength(f_in);
 		f_in.read(reinterpret_cast<char *>(&k), 1);
-		cerr << "k = " << (int)k << endl;
+		cerr << "BitTree:: k = " << (int)k << endl;
 		assert(k > 0 && k < 33);
 		shared_ptr<boost::dynamic_bitset<>> bitstream(new boost::dynamic_bitset<>());
 		// add buffer[1:] to the bitstream
 		auto bytes_per_block = sizeof(boost::dynamic_bitset<>::block_type);
-		cerr << "Reading bit tree at " << bytes_per_block << "bytes per block" 
+		cerr << "Reading bit tree at " << bytes_per_block << "bytes per block"
 			<< endl;
 		auto num_blocks = (fsize - 1) / bytes_per_block;
 		// cerr << num_blocks << endl;
@@ -226,7 +226,7 @@ public:
 	}
 
 	/*
-	 * build an index -- an offset to the bitstream for every D-mer we observe 
+	 * build an index -- an offset to the bitstream for every D-mer we observe
 	 * in the kmer set. Store the index in a hash map of (5mer, index) pairs
 	 */
 	void build_index(const uint D) {
@@ -236,7 +236,7 @@ public:
 		// skip the first 1 -- it is the root
 		size_t index = bitstream->find_first() + 1;
 		// string alphabet = "ACGT";
-		
+
 		bin_kmer_t branch = 0;
 		int depth = 0;
 		bin_kmer_t prefix = 0;
@@ -251,7 +251,7 @@ public:
 				if (depth == (D-1) ) { // reached level D
 					dmer_index.emplace(prefix, index);
 					prefix = prefix >> 2;
-					
+
 					while (branch >= 3 && !branches.empty()) {
 							depth--;
 							branch = branches.top(); branches.pop();
@@ -281,10 +281,10 @@ public:
 			" elements (max elements: " << pow(4, D) << ")" << endl;
 	}
 
-	/* 
-	 * returns True if the bit_tree (a set) contains the kmers, otherwise 
-	 * returns False. Computes the answer in O(L) where L is the length of the 
-	 * query (kmer size) 
+	/*
+	 * returns True if the bit_tree (a set) contains the kmers, otherwise
+	 * returns False. Computes the answer in O(L) where L is the length of the
+	 * query (kmer size)
 	 */
 	bool contains(const bin_kmer_t query) {
 		// compute offset into the stream to query for the first D letters
@@ -297,11 +297,11 @@ public:
 		////////////////////////////////////////////////////////
 		// now traverse the subtree starting at index to see if kmer is there
 		////////////////////////////////////////////////////////
-		
+
 		bin_kmer_t branch = 0;
 		// depth is 0-based, while D is 1-based. here we are at depth D+1 -- one
 		// longer than prefix
-		int depth = D; 
+		int depth = D;
 		// put branches index on stack as we go down the tree, pop as we go back
 		// up the tree keep track of unexplored branches
 		stack<int> branches;
@@ -317,7 +317,7 @@ public:
 					// may have the query
 					// continue exploring the subtrees
 					prefix = prefix >> 2; // up one level
-					
+
 					while (branch >= 3 && !branches.empty()) {
 							depth--;
 							// if (depth < D) return false;

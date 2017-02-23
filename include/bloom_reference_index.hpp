@@ -11,12 +11,21 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <cassert>
+
+// for low-level file IO
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
 
 #include "BaseBloomFilter.hpp"
 #include "reference_index.hpp"
+#include "anchor_index.hpp"
 #include "definitions.hpp"
 
 using namespace std;
+
+namespace nimble {
 
 /* generate all possible variants for a kmer of a given length w/ hamming
 distance mm from the original */
@@ -42,36 +51,49 @@ class BloomReferenceIndex : public ReferenceIndex {
 	shared_ptr<BaseBloomFilter> _bf;
 
 	// anchor locations (stars)
-	shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _stars;
+    nimble::AnchorIndex _anchorIndex;
+
+	// kmer length
+	uint K = 0;
+
+    uint64_t observed_kmers = 0;
 
 	/*
 	 *
 	 * read kmers describing the reference from the file
 	 *
 	 */
-	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & path, int K) {
-		cerr << "reading kmers from " << path << endl;
+	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & prefix) {
+		cerr << "[BloomFilterIndex] reading index from " << prefix << EXT << endl;
 		auto start = std::chrono::system_clock::now();
 
 		// vector<kmer_bin_t> all_kmers;
 
-		ifstream in(path);
+		ifstream in(prefix + EXT);
 		if (!in) {
-			cerr << "[ERROR] Could not open the file: " << path << endl;
+			cerr << "[ERROR] [BloomFilterIndex] Could not open the file: " << prefix << endl;
 			exit(1);
 		}
 		string line;
+        // read first line: K -- kmer length
+		getline(in, line);
+		uint64_t k = stol(line);
+		this->K = k;
+		cerr << "[BloomFilterIndex] Kmer length: " << K << endl;
+        // read second line: N -- number of kmers (lines) to expect
 		getline(in, line);
 		uint64_t kmer_count = stol(line);
-		cerr << "Expected kmer count: " << kmer_count << endl;
+		cerr << "[BloomFilterIndex] Expected kmer count: " << kmer_count << endl;
+
+        // read the rest of the file -- one kmer per line
 		shared_ptr<BaseBloomFilter> bloom =
 			shared_ptr<BaseBloomFilter>(new BaseBloomFilter(K, (size_t)(kmer_count * 10) ) );
 
 		static const auto BUFFER_SIZE = (size_t)pow(2,22); // do not overwhelm the stack :)
-		// cerr << "Buffer size, bytes: " << BUFFER_SIZE << endl;
-	    int fd = open(path.c_str(), O_RDONLY);
+        // TODO why are we reading the file from the start? need to skip first 2 lines
+	    int fd = open((prefix + EXT).c_str(), O_RDONLY);
 	    if (fd == -1) {
-	    	cerr << "[ERROR] Could not open file: " << path << endl;
+	    	cerr << "[ERROR] [BloomFilterIndex] Could not open file: " << prefix << EXT << endl;
 	    	exit(1);
 	    }
 		else {
@@ -80,12 +102,13 @@ class BloomReferenceIndex : public ReferenceIndex {
 	 	//    /* Advise the kernel of our access pattern.  */
 	 	//    // posix_fadvise(fd, 0, 0, 1);  // FDADVICE_SEQUENTIAL
 	    char buf[BUFFER_SIZE + 1];
+        // i -- count the lines
 	    size_t i = 0, trailing = 0;
 	    size_t bytes_read = read(fd, buf, BUFFER_SIZE);
 	    size_t total_bytes_read = bytes_read;
 	    while (bytes_read != 0) {
 	        if (bytes_read == (size_t)-1) {
-	        	cerr << "Could not read" << endl;
+	        	cerr << "[BloomFilterIndex] Could not read" << endl;
 	        	exit(1);
 	        }
 	        char *p = buf;
@@ -100,7 +123,7 @@ class BloomReferenceIndex : public ReferenceIndex {
 	        		break;
 	        	}
 	        	else {
-		        	if (i != 0) {
+		        	if (i != 0 && i != 1) { // skip the first 2 lines
 		        		uint64_t bin_kmer = strtol(p, &p_next, 10);
 		        		// if (bytes_read < BUFFER_SIZE/2)
 		        			// cerr << (p - buf) << " " << bin_kmer << endl;
@@ -113,11 +136,13 @@ class BloomReferenceIndex : public ReferenceIndex {
 
 		        	if (i % 5000000 == 0) cerr << i/1000000 << "m ";
 		        	if (i > 1 + kmer_count) {
-		        		cerr << "More kmers than expected: " << kmer_count << " vs. " << i << " bytes read: " << total_bytes_read << endl;
+		        		cerr << "[BloomFilterIndex] Read more kmers than expected: "
+                            << kmer_count << " vs. " << i <<
+                            " bytes read: " << total_bytes_read << endl;
 		        		cerr << (p-buf) << " " << bytes_read << endl;
 		        		exit(1);
 		        	}
-		        	i++;
+		        	i++; // increment the line count
 		        }
 	        }
 	        bytes_read = read(fd, buf + trailing, BUFFER_SIZE - trailing);
@@ -125,16 +150,17 @@ class BloomReferenceIndex : public ReferenceIndex {
 	        total_bytes_read += bytes_read;
 	    }
 		close(fd);
-		cerr << endl << "read " << (i-1) << " kmers" << endl;
-		cerr << "Trailing: " << trailing << " " << bytes_read << endl;
+        observed_kmers = i - 2;
+		cerr << endl << "read " << observed_kmers << " kmers" << endl;
+		cerr << "[BloomFilterIndex] Trailing: " << trailing << " " << bytes_read << endl;
 		if (i < kmer_count) {
-			cerr << "Expected: " << kmer_count << endl;
-			// exit(1);
+			cerr << "[BloomFilterIndex] Read fewer kmers than expected: " << i <<
+                "vs. " << kmer_count << endl;
 		}
 		// debug info
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
-		cerr << "reading kmers took: " << elapsed_seconds.count() << "s" << endl;
+		cerr << "[BloomFilterIndex] reading kmers took: " << elapsed_seconds.count() << "s" << endl;
 
 		// cerr << "sorting" << endl;
 		// std::sort(all_kmers.begin(), all_kmers.end());
@@ -146,10 +172,21 @@ public:
 
 	BloomReferenceIndex() {};
 
+    const constexpr static char* EXT = ".idx";
+
+	uint getK() {return K;}
+
+    uint64_t size() {
+        return observed_kmers;
+    }
+
 	// read kmers (or pdBG describing the reference) and anchor locations
-	void readIndex(const string & kmers_path, const string & stars_path, const uint K) {
-		_bf = readKmers_bf_faster(kmers_path, K);
-		_stars = readStarLocations(stars_path, K);
+	void readIndex(const string & index_prefix) {
+
+		this->K = 0;
+		_bf = readKmers_bf_faster(index_prefix);
+        // TODO: K is not set here -- ro anywhere
+        _anchorIndex.readStarLocations(index_prefix, this->K);
 	}
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */
@@ -159,25 +196,58 @@ public:
 
 	/* returns true is this kmer is found among anchors, false otherwise*/
 	bool is_anchor(const bin_kmer_t kmer) const {
-		return _stars->find(kmer) != _stars->end();
+		// return _anchors->find(kmer) != _anchors->end();
+        _anchorIndex.is_anchor(kmer);
 	}
-
-	/* allow anchors w/ 1 mm  */
-	// bool has_anchor(const kmer_t & kmer, const unsigned char K = 20) const {
-	// 	// TODO: generate all variants of this kmer
-	// 	// and try them all
-	// 	// TODO: SIMD optimization
-	// 	shared_ptr<vector<kmer_t>> kmer_variants = generate_all_variants(kmer, K, 1);
-	// 	for (const kmer_t & kmer : *kmer_variants) {
-	// 		if (_stars->find(kmer) != _stars->end()) return true;
-	// 	}
-	// 	return false;
-	// }
 
 	// TODO: what does this & do? do we use it?
 	vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
-		return (*_stars)[kmer];
+		return _anchorIndex.get_anchor_locations(kmer);
 	}
+
+    /*
+     * Writes all kmers in the index in the format that is agreed upon between
+     * this function and readIndex()
+     */
+    static void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts,
+        const string & output_prefix) {
+		cerr << "[BloomFilterIndex] writing index kmers" << endl;
+		auto start = std::chrono::system_clock::now();
+
+		ofstream all_kmers(output_prefix + ".idx");
+        // TODO: check that can write
+
+		// write the # of kmers to expect
+		all_kmers << kmer_counts.size() << endl;
+        // TODO: write out the K -- kmer length
+
+		// TODO
+		// cerr << "Sorting kmers" << endl;
+		// std::sort(kmer_locations->begin(), kmer_locations->end(), [](pair<> a, pair<> b) {
+			// return a.first < b.first;
+		// } );
+		// cerr << "Sorting took " << t.elapsed() << " s" << endl;
+		// t.restart();
+
+		int i = 0;
+        // write and prune
+		while (kmer_counts.size() > 0) {
+			auto it = kmer_counts.begin();
+			all_kmers << it->first << endl;
+			kmer_counts.erase(it);
+			i++;
+		}
+		all_kmers.close();
+		cerr << "[BloomFilterIndex] wrote " << i << " kmers" << endl;
+		assert(kmer_counts.size() == 0);
+
+		auto end = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed_seconds_str = end - start;
+	    cerr << "[BloomFilterIndex] Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
+		kmer_counts.clear();
+    }
 };
+
+}
 
 #endif // BLOOM_INDEX_READER

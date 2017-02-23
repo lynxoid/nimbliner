@@ -1,3 +1,21 @@
+/*
+Nimbliner -- a nimble aligner for accurate reads
+Copyright (C) 2015-2017  Darya Filippova dasha.filippova@gmail.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <iostream>
 #include <fstream>
 #include <cassert>
@@ -10,7 +28,7 @@
 #include <tclap/CmdLine.h>
 
 // #include "FastaReader.h"
-#include "SeqBFUtil.hpp"
+// #include "SeqBFUtil.hpp"
 
 #include "reference_index.hpp"
 #include "bloom_reference_index.hpp"
@@ -23,11 +41,8 @@ using namespace std;
 
 struct input_parameters {
 	string input_fasta;
-	string input_anchors;
-	string input_index;
+	string index_prefix;
 	string output_path;
-	// TODO: embed this into the index so that user does not have to enter it
-	int K;		// kmer size to use (assumes this K was used in index)
 };
 
 input_parameters parse_arguments(const int argc, char * argv []) {
@@ -43,28 +58,24 @@ input_parameters parse_arguments(const int argc, char * argv []) {
 	cmd.add( output );
 
 	// input anchors
-	TCLAP::ValueArg<std::string> anchors("a","anchors",
-                "Path to index anchors file", true, "?", "string");
-        cmd.add( anchors );
-
-	TCLAP::ValueArg<std::string> index_kmers("x","index-kmers",
-                "All reference kmers", true, "?", "string");
-        cmd.add( index_kmers );
-
-	// TODO: this parameter should be implicit from the way we built the index
-	// pass w/ the index file
-	TCLAP::ValueArg<int> klen("k", "kmer-length","Kmer length used in index",
-                true, 20, "int");
-        cmd.add( klen );
+	// TCLAP::ValueArg<std::string> anchors("a","anchors",
+    //             "Path to index anchors file", true, "?", "string");
+    //     cmd.add( anchors );
+    //
+	// TCLAP::ValueArg<std::string> index_kmers("x","index-kmers",
+    //             "All reference kmers", true, "?", "string");
+    //     cmd.add( index_kmers );
+    TCLAP::ValueArg<std::string> index("x","index",
+                "Index prefix (same as -o for index builder)",
+                true, "?", "string");
+    cmd.add( index );
 
 	cmd.parse( argc, argv );
 
 	// Get the value parsed by each arg.
 	input_parameters ip;
 	ip.input_fasta = input.getValue();
-	ip.input_anchors = anchors.getValue();
-	ip.input_index = index_kmers.getValue();
-	ip.K = klen.getValue();
+	ip.index_prefix = index.getValue();
 	ip.output_path = output.getValue();
 
 	return ip;
@@ -83,12 +94,12 @@ int main(int argc, char * argv []) {
 	input_parameters ip = parse_arguments(argc, argv);
 
 	{
-		shared_ptr<ReferenceIndex> index = shared_ptr<BloomReferenceIndex>(new BloomReferenceIndex() );
+		shared_ptr<ReferenceIndex> index = shared_ptr<nimble::BloomReferenceIndex>(new nimble::BloomReferenceIndex() );
 		// shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
-		index->readIndex(ip.input_index, ip.input_anchors, ip.K);
+		index->readIndex(ip.index_prefix);
 
-		cerr << "========================" << endl;
-		cerr << "CAN NOW TEST THE MAPPING" << endl;
+		cerr << "==============================" << endl;
+		cerr << "MAPPING READS TO THE REFERENCE" << endl;
 		// end = std::chrono::system_clock::now();
 		// elapsed_seconds = end-start;
 	    // cerr << "setup took: " << elapsed_seconds.count() << "s" << endl;
@@ -101,7 +112,7 @@ int main(int argc, char * argv []) {
 		Aligner aligner(index);
 		// ParallelAligner aligner(index);
 		// TODO: separate sequence reads and aligner -- make aligner pull things off the queue
-		aligner.alignReads(ip.input_fasta, ip.K, false /* debug */ );
+		aligner.alignReads(ip.input_fasta, false /* debug */ );
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end - start;
 		cerr << "querying: " << elapsed_seconds.count() << "s" << endl;

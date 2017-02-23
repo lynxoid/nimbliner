@@ -8,7 +8,7 @@ Nimbliner uses Bloom filters instead of suffix arrays as reference which incurs 
 
 ### Installation
 
-You can build a docker image and then run nimbliner wthin the container:
+You can build a docker image and then run nimbliner within the container:
 
 ```
 <clone the repo>
@@ -16,6 +16,15 @@ docker build -t nimbliner-dev:0.1 -f docker/Dockerfile docker/
 # this will produce all_kmers.txt and anchors.txt in the current directory
 docker run -v `pwd`:/nimbliner nimbliner-dev:0.1 indexer 20 <path to your reference, single fasta file>
 docker run -v `pwd`:/nimbliner nimbliner-dev:0.1 mapper 20 <path to your reads, single fasta file> all_kmers.txt anchors.txt
+```
+
+### Running benchmarks
+
+Benchmarking is set up with [Snakemake](). To run the benchmarks, you can do:
+
+```
+cd benchmarking
+snakemake --configfile experiments.json run_pipeline
 ```
 
 #### Other ways

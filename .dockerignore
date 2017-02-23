@@ -1,6 +1,13 @@
+*.txt
+*.json
+*.sh
+*.sh
+*.profile
+README.md
+benchmarking/*
+bin/*
+notes/*
 data/*
 related_work/*
 .snakemake/*
 .git/*
-*.sh
-*.profile
