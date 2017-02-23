@@ -14,13 +14,13 @@ TEST_CASE("BloomReferenceIndex: read index", "[readers]")
     SECTION("Test hxb2 anchor set")
     {
         nimble::BloomReferenceIndex idx;
-        idx.readIndex("data/test/hxb2.index", "data/test/hxb2.star");
+        idx.readIndex("data/test/hxb2");
         SECTION("test that K -- kmer size -- was read correctly")
         {
             REQUIRE(idx.getK() == 20);
         }
 
-        SECTION("test that read as many kmers as expected")
+        SECTION("test that we read as many kmers as expected")
         {
             REQUIRE(idx.size() == 9202);
         }

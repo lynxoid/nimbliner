@@ -31,9 +31,11 @@ class AnchorIndex {
     shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _anchors;
 
 public:
-    AnchorIndex() {
 
+    AnchorIndex() {
     }
+
+    static constexpr const char* EXT = ".star";
 
     /*
      * returns True is the kmer is in the anchor set; false otherwise
@@ -61,17 +63,17 @@ public:
 	 *
 	 */
     // TODO: rename to readAnchors
-	void readStarLocations(const string & path, const int K) {
-		cerr << "[AnchorIndex] reading anchors from " << path << endl;
+	void readStarLocations(const string & prefix, const int K) {
+		cerr << "[AnchorIndex] reading anchors from " << prefix << EXT << endl;
 		auto start = std::chrono::system_clock::now();
 
 		_anchors = shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>>(
                 new unordered_map<kmer_t, vector<genomic_coordinate_t>>()
             );
-		ifstream in(path);
+		ifstream in(prefix + EXT);
 
         if (!in) {
-            cerr << "[ERROR] [AnchorIndex] Could not open anchor index file " << path << endl;
+            cerr << "[ERROR] [AnchorIndex] Could not open anchor index file " << prefix << EXT << endl;
             exit(1);
         }
 
@@ -111,7 +113,7 @@ public:
         const string & output_prefix) {
 		cerr << "[AnchorIndex] saving anchors" << endl;
 
-		ofstream star_locations_out(output_prefix + ".anchors");
+		ofstream star_locations_out(output_prefix + EXT);
         // TODO: check if can write
 		auto start = std::chrono::system_clock::now();
 
@@ -128,6 +130,8 @@ public:
 	}
 };
 
+// const string AnchorIndex::EXT = ".star";
+
 }
 
-#endif // ANCHOR_COLELCTION
+#endif // ANCHOR_INDEX

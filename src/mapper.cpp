@@ -41,8 +41,7 @@ using namespace std;
 
 struct input_parameters {
 	string input_fasta;
-	string input_anchors;
-	string input_index;
+	string index_prefix;
 	string output_path;
 };
 
@@ -59,21 +58,24 @@ input_parameters parse_arguments(const int argc, char * argv []) {
 	cmd.add( output );
 
 	// input anchors
-	TCLAP::ValueArg<std::string> anchors("a","anchors",
-                "Path to index anchors file", true, "?", "string");
-        cmd.add( anchors );
-
-	TCLAP::ValueArg<std::string> index_kmers("x","index-kmers",
-                "All reference kmers", true, "?", "string");
-        cmd.add( index_kmers );
+	// TCLAP::ValueArg<std::string> anchors("a","anchors",
+    //             "Path to index anchors file", true, "?", "string");
+    //     cmd.add( anchors );
+    //
+	// TCLAP::ValueArg<std::string> index_kmers("x","index-kmers",
+    //             "All reference kmers", true, "?", "string");
+    //     cmd.add( index_kmers );
+    TCLAP::ValueArg<std::string> index("x","index",
+                "Index prefix (same as -o for index builder)",
+                true, "?", "string");
+    cmd.add( index );
 
 	cmd.parse( argc, argv );
 
 	// Get the value parsed by each arg.
 	input_parameters ip;
 	ip.input_fasta = input.getValue();
-	ip.input_anchors = anchors.getValue();
-	ip.input_index = index_kmers.getValue();
+	ip.index_prefix = index.getValue();
 	ip.output_path = output.getValue();
 
 	return ip;
@@ -94,7 +96,7 @@ int main(int argc, char * argv []) {
 	{
 		shared_ptr<ReferenceIndex> index = shared_ptr<nimble::BloomReferenceIndex>(new nimble::BloomReferenceIndex() );
 		// shared_ptr<ReferenceIndex> index = shared_ptr<BitTreeIndex>(new BitTreeIndex() );
-		index->readIndex(ip.input_index, ip.input_anchors);
+		index->readIndex(ip.index_prefix);
 
 		cerr << "==============================" << endl;
 		cerr << "MAPPING READS TO THE REFERENCE" << endl;

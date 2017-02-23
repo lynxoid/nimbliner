@@ -63,15 +63,15 @@ class BloomReferenceIndex : public ReferenceIndex {
 	 * read kmers describing the reference from the file
 	 *
 	 */
-	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & path) {
-		cerr << "[BloomFilterIndex] reading index from " << path << endl;
+	shared_ptr<BaseBloomFilter> readKmers_bf_faster(const string & prefix) {
+		cerr << "[BloomFilterIndex] reading index from " << prefix << EXT << endl;
 		auto start = std::chrono::system_clock::now();
 
 		// vector<kmer_bin_t> all_kmers;
 
-		ifstream in(path);
+		ifstream in(prefix + EXT);
 		if (!in) {
-			cerr << "[ERROR] [BloomFilterIndex] Could not open the file: " << path << endl;
+			cerr << "[ERROR] [BloomFilterIndex] Could not open the file: " << prefix << endl;
 			exit(1);
 		}
 		string line;
@@ -91,9 +91,9 @@ class BloomReferenceIndex : public ReferenceIndex {
 
 		static const auto BUFFER_SIZE = (size_t)pow(2,22); // do not overwhelm the stack :)
         // TODO why are we reading the file from the start? need to skip first 2 lines
-	    int fd = open(path.c_str(), O_RDONLY);
+	    int fd = open((prefix + EXT).c_str(), O_RDONLY);
 	    if (fd == -1) {
-	    	cerr << "[ERROR] [BloomFilterIndex] Could not open file: " << path << endl;
+	    	cerr << "[ERROR] [BloomFilterIndex] Could not open file: " << prefix << EXT << endl;
 	    	exit(1);
 	    }
 		else {
@@ -172,6 +172,8 @@ public:
 
 	BloomReferenceIndex() {};
 
+    const constexpr static char* EXT = ".idx";
+
 	uint getK() {return K;}
 
     uint64_t size() {
@@ -179,10 +181,12 @@ public:
     }
 
 	// read kmers (or pdBG describing the reference) and anchor locations
-	void readIndex(const string & kmers_path, const string & stars_path) {
+	void readIndex(const string & index_prefix) {
+
 		this->K = 0;
-		_bf = readKmers_bf_faster(kmers_path);
-        _anchorIndex.readStarLocations(stars_path, this->K);
+		_bf = readKmers_bf_faster(index_prefix);
+        // TODO: K is not set here -- ro anywhere
+        _anchorIndex.readStarLocations(index_prefix, this->K);
 	}
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */

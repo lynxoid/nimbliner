@@ -15,7 +15,7 @@ TEST_CASE("AnchorIndex: read anchors", "[readers]")
     SECTION("Test hxb2 anchor set")
     {
         nimble::AnchorIndex anchor_idx;
-        anchor_idx.readStarLocations("data/test/hxb2.star", 20);
+        anchor_idx.readStarLocations("data/test/hxb2", 20);
         SECTION("test the number of anchors read")
         {
             REQUIRE(anchor_idx.size() == 194);

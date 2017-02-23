@@ -17,4 +17,4 @@
 TAG=lynxoid/nimbliner:0.2
 docker build -t $TAG -f docker/Dockerfile .
 # run tests
-docker run -it -v $PWD/data/:/nimbliner/data/ $TAG;./nimbliner/test
+docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/nb_tests
