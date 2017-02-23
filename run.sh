@@ -18,3 +18,17 @@ TAG=lynxoid/nimbliner:0.2
 docker build -t $TAG -f docker/Dockerfile .
 # run tests
 docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/nb_tests
+
+# run a smoke test
+mkdir -p data/smoke
+echo ">seq1" > data/smoke/ref1.fa
+echo "AACCGGTT" >> data/smoke/ref1.fa
+
+echo ">seq2" > data/smoke/ref2.fa
+echo "TTAAGGCC" >> data/smoke/ref2.fa
+# echo $PWD/data/smoke/ref1.fa > data/smoke/reference.fofn
+# echo $PWD/data/smoke/ref2.fa >> data/smoke/reference.fofn
+echo /nimbliner/data/smoke/ref1.fa > data/smoke/reference.fofn
+echo /nimbliner/data/smoke/ref2.fa >> data/smoke/reference.fofn
+
+docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/indexer -i data/smoke/reference.fofn -k 3 -o data/smoke/reference

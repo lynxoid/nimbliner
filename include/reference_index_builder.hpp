@@ -19,21 +19,20 @@
 #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
-////////////////////////////////////////////////////////////////
-// parse a fasta file and return vector of reads
-////////////////////////////////////////////////////////////////
-vector<string> parseFasta(string const & path) {
-    vector<string> reads;
-    FastaReader fr(path.c_str());
-    kseq_t * seq;
-    size_t cnt = 0;
-    while ( (seq = fr.nextSequence() ) ) {
-      // cerr << seq->seq.s << endl;
-      reads.push_back(seq->seq.s);
-      cnt++;
+namespace nimble {
+
+inline bool can_read_or_quit(const ifstream & in, const string & name, const bool quit = true) {
+    if (!in) {
+        cerr << "[ERROR] Can not read from file " << name << endl;
+        if (quit)
+            exit(1);
+        return false;
     }
-    cerr << "(" << cnt << " reads) ";
-    return reads;
+    return true;
+}
+
+inline void can_write_or_quit(const ifstream & in) {
+
 }
 
 class ReferenceIndexBuilder {
@@ -118,67 +117,132 @@ public:
 	// 	return;
 	// }
 
+    shared_ptr<unordered_map<kmer_t, uint8_t>> build_pdBG(const string & fofn_path, const uint K) {
+        // open a fofn file, read one line at a time, parse fasta seqeunces at
+        // every line
+        ifstream fofn_in(fofn_path);
+        // quit if cant read from this file
+        can_read_or_quit(fofn_in, fofn_path, true);
+
+    	// TODO: use counting BF/perfect hash here
+        shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts(new unordered_map<kmer_t, uint8_t>() );
+
+        string fasta_path;
+        while (getline(fofn_in, fasta_path)) {
+            FastaReader fr(fasta_path.c_str());
+            if (!fr.is_open() ) {
+                cerr << "[ERROR] Can not read from " << fasta_path <<
+                    ". Skipping..." << endl;
+                continue;
+            }
+            kseq_t * seq;
+            while ( (seq = fr.nextSequence() ) ) {
+                string chr = seq->seq.s;
+                // get all kmers from this sequence
+        		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
+                    // TODO: use a rolling binary transform here to get the next kmer
+        			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
+        			if ( kmer_counts->find(kmer) == kmer_counts->end() ) {
+                        (*kmer_counts)[kmer] = 1;
+        			}
+        			else {
+        				// can delta encode here and fit into less space technically
+        				if ( (*kmer_counts)[kmer] < 255)
+        					(*kmer_counts)[kmer]++;
+        				// else -- do not increment to avoid overflow
+        			}
+        			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
+        		}
+                cerr << "(" << kmer_counts->size() << " kmers) ";
+            }
+        }
+        cerr << endl;
+        fofn_in.close();
+        return kmer_counts;
+    }
+
+    shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > select_anchors(
+        const string & fofn_path, const uint K, uint freq_cutoff,
+        shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts) {
+        ifstream fofn_in(fofn_path);
+        can_read_or_quit(fofn_in, fofn_path, true);
+        shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors(
+            new unordered_map<kmer_t, list<seed_position_t> >());
+
+        // TODO: expose this variable as a parameter
+        int offset = 50;
+
+        reference_id_t ref_id = 0;
+        string fasta_path;
+        while (getline(fofn_in, fasta_path)) {
+            FastaReader fr(fasta_path.c_str());
+            if (!fr.is_open() ) {
+                cerr << "[ERROR] Can not read from " << fasta_path <<
+                    ". Skipping..." << endl;
+                continue;
+            }
+            kseq_t * seq;
+            while ( (seq = fr.nextSequence() ) ) {
+                string chr = seq->seq.s;
+                for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
+                    // TODO: use a rolling approach to get next kmer
+        			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
+        			if ( (*kmer_counts)[kmer] < freq_cutoff) {
+        				// add to anchors
+        				if (anchors->find(kmer) == anchors->end() ) {
+        					anchors->emplace(kmer, list<seed_position_t>{{ref_id,i}});
+        				}
+        				else
+        					(*anchors)[kmer].emplace_back(ref_id, i);
+        				i += offset - 1;
+        			}
+        			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
+        		}
+                // increment reference sequence index
+                ref_id++;
+                cerr << "(" << anchors->size() << " anchors from " << ref_id << " reference sequences)" << endl;
+            }
+        }
+
+        return anchors;
+    }
+
     /*
      * build index in 2 passes
      */
-	void buildIndex(const string & ref_path, const string & output_prefix,
+	void buildIndex(const string & fofn_path, const string & output_prefix,
         const uint K) {
-        auto chromosomes = parseFasta(ref_path);
 
-		// naive counter
-		// TODO: use counting BF
-		unordered_map<kmer_t, uint8_t> kmer_counts;
-		assert(chromosomes.size() > 0);
-		// TODO: index all chromosomes given as input
-		auto chr = chromosomes[0];
+        cerr << "Pass 1: building background pdBG" << endl;
+        shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts =
+            build_pdBG(fofn_path, K);
 
-		int c = 0;
-		cerr << "Gathering kmers: pass 1" << endl;
-		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
-			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
-			if ( kmer_counts.find(kmer) == kmer_counts.end() ) {
-					kmer_counts[kmer] = 1;
-			}
-			else {
-				// can delta encode here and fit into less space technically
-				if (kmer_counts[kmer] < 255)
-					kmer_counts[kmer]++;
-				// else -- do not increment to avoid overflow
-			}
-			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
-		}
-		cerr << "(" << kmer_counts.size() << " kmers)" << endl;
-		cerr << "Gathering kmers: pass 2" << endl;
 
+		cerr << "Pass 2: selecting anchors" << endl;
+
+        // TODO: expose as a paramter
 		const int x = 5;
 
 		// TODO: can keep linked lists since expect these lists to be short
-		unordered_map<kmer_t, list<genomic_coordinate_t>	> anchors;
-		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
-			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
-			if (kmer_counts[kmer] < x) {
-				// add to anchors
-				if (anchors.find(kmer) == anchors.end() ) {
-					anchors.emplace(kmer, list<genomic_coordinate_t>{i});
-				}
-				else
-					anchors[kmer].push_back(i);
-				i += 50;
-			}
-			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
-		}
+        // is LL less overhead than vector?
+		shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors =
+            select_anchors(fofn_path, K, x, kmer_counts);
 
-		cerr << "(" << anchors.size() << " anchors)" << endl;
 
-		nimble::AnchorIndex::write_anchors(anchors, output_prefix);
-		// switch between different implementations of the index
+        // switch between different implementations of the index
         // nimble::ReferenceIndex::write_index(kmer_counts);
 		nimble::BloomReferenceIndex::write_index(kmer_counts, output_prefix);
+        // TODO: prune kmer_counts as we write them only keeping those that are
+        // below frequency cutoff
+
+		nimble::AnchorIndex::write_anchors(anchors, output_prefix);
 		// bit tree representation will take less space
 		// write_bit_tree_index(kmer_locations, K);
 		return;
 	}
 
 };
+
+}
 
 #endif // INDEX_BUILDER

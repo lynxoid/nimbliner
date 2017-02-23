@@ -109,17 +109,24 @@ public:
     /*
 	 * TODO: sort and delta encode offsets; write out to a gzip
 	 */
-	static void write_anchors(unordered_map<kmer_t, list<genomic_coordinate_t>> & anchors,
+	static void write_anchors(shared_ptr<unordered_map<kmer_t, list<seed_position_t>>> anchors,
         const string & output_prefix) {
-		cerr << "[AnchorIndex] saving anchors" << endl;
+		cerr << "[AnchorIndex] writing anchors" << endl;
 
 		ofstream star_locations_out(output_prefix + EXT);
         // TODO: check if can write
 		auto start = std::chrono::system_clock::now();
 
-		for (auto & anchor_pair : anchors) {
+        reference_id_t prev_ref_id = -1;
+		for (auto & anchor_pair : *anchors) {
 			star_locations_out << anchor_pair.first << " ";
-			for (auto loc : anchor_pair.second) star_locations_out << loc << " ";
+			for (const seed_position_t & loc : anchor_pair.second) {
+                if (prev_ref_id != loc.first) {
+                    star_locations_out << "*" << loc.first << " ";
+                    prev_ref_id = loc.first;
+                }
+                star_locations_out << loc.second << " ";
+            }
 			star_locations_out << endl;
 		}
 		star_locations_out.close();
@@ -129,8 +136,6 @@ public:
 	    cerr << "[AnchorIndex] Saving anchors took: " << elapsed_seconds_str.count() << "s" << endl;
 	}
 };
-
-// const string AnchorIndex::EXT = ".star";
 
 }
 

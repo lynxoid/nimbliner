@@ -28,6 +28,6 @@ ENV LD_LIBRARY_PATH /usr/local/lib/
 COPY . /nimbliner/
 
 RUN cd /nimbliner/ && \
-  make && make install
+  make clean && make && make install
 
 WORKDIR /nimbliner

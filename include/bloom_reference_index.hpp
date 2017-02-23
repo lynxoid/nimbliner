@@ -209,7 +209,7 @@ public:
      * Writes all kmers in the index in the format that is agreed upon between
      * this function and readIndex()
      */
-    static void write_index(unordered_map<kmer_t,uint8_t> & kmer_counts,
+    static void write_index(shared_ptr<unordered_map<kmer_t,uint8_t>> kmer_counts,
         const string & output_prefix) {
 		cerr << "[BloomFilterIndex] writing index kmers" << endl;
 		auto start = std::chrono::system_clock::now();
@@ -218,7 +218,7 @@ public:
         // TODO: check that can write
 
 		// write the # of kmers to expect
-		all_kmers << kmer_counts.size() << endl;
+		all_kmers << kmer_counts->size() << endl;
         // TODO: write out the K -- kmer length
 
 		// TODO
@@ -231,20 +231,20 @@ public:
 
 		int i = 0;
         // write and prune
-		while (kmer_counts.size() > 0) {
-			auto it = kmer_counts.begin();
+		while (kmer_counts->size() > 0) {
+			auto it = kmer_counts->begin();
 			all_kmers << it->first << endl;
-			kmer_counts.erase(it);
+			kmer_counts->erase(it);
 			i++;
 		}
 		all_kmers.close();
 		cerr << "[BloomFilterIndex] wrote " << i << " kmers" << endl;
-		assert(kmer_counts.size() == 0);
+		assert(kmer_counts->size() == 0);
 
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds_str = end - start;
 	    cerr << "[BloomFilterIndex] Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
-		kmer_counts.clear();
+		kmer_counts->clear();
     }
 };
 
