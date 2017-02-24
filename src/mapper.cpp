@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "reference_index.hpp"
 #include "bloom_reference_index.hpp"
-#include "bit_tree_index.hpp"
+// #include "bit_tree_index.hpp"
 #include "aligner.hpp"
 // #include "parallel_aligner.hpp"
 #include "definitions.hpp"

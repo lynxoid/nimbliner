@@ -15,9 +15,10 @@
 
 # compile w/ docker
 TAG=lynxoid/nimbliner:0.2
-docker build -t $TAG -f docker/Dockerfile .
+echo "Building fresh docker image"
+docker build -q -t $TAG -f docker/Dockerfile .
 # run tests
-docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/nb_tests
+# docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/nb_tests
 
 # # run a smoke test
 mkdir -p data/smoke
@@ -36,4 +37,5 @@ echo ">read1" > data/smoke/reads.fa
 echo "AACC" >> data/smoke/reads.fa
 echo ">read2" >> data/smoke/reads.fa
 echo "TTAA" >> data/smoke/reads.fa
-docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/mapper -i data/smoke/reads.fa -x data/smoke/reference
+docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/mapper -i data/smoke/reads.fa -x data/smoke/reference > data/smoke/reference.out
+diff -qiw data/smoke/reference.expected_output data/smoke/reference.out

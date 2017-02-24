@@ -11,12 +11,12 @@
 #include <algorithm>
 #include <list>
 
-#include <boost/timer.hpp>
+// #include <boost/timer.hpp>
 
 #include "FastaReader.h"
 #include "anchor_index.hpp"
 #include "bloom_reference_index.hpp"
-#include "bit_tree_binary.hpp"
+// #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
 
 namespace nimble {
@@ -30,6 +30,7 @@ class ReferenceIndexBuilder {
 	}
 
 
+    /*
 	void write_bit_tree_index(unordered_map<kmer_t, vector<genomic_coordinate_t>> & kmer_locations,
 			const uint k) {
 		// dump to a vector
@@ -61,6 +62,7 @@ class ReferenceIndexBuilder {
 		bit_tree.write("index.btbin");
 		cerr << "Writing BitTree took " << t.elapsed() << " s" << endl;
 	}
+    */
 
 public:
 	ReferenceIndexBuilder() {}

@@ -197,7 +197,7 @@ public:
 	/* returns true is this kmer is found among anchors, false otherwise*/
 	bool is_anchor(const bin_kmer_t kmer) const {
 		// return _anchors->find(kmer) != _anchors->end();
-        _anchorIndex.is_anchor(kmer);
+        return _anchorIndex.is_anchor(kmer);
 	}
 
 	// TODO: what does this & do? do we use it?

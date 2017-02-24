@@ -131,12 +131,12 @@ class Aligner {
    *
    */
   kmer_t get_next_kmer(kmer_t bin_kmer, const char next_base, const short K) {
-        // mask is all ones
+    // mask is all ones
     kmer_t mask = get_all_ones(K - 1);
-        bin_kmer = (bin_kmer & mask) << 2;
-        // append a new char on the right
-        bin_kmer = bin_kmer | (kmer_t)nimble::dna_codes[ next_base ];
-        return bin_kmer;
+    bin_kmer = (bin_kmer & mask) << 2;
+    // append a new char on the right
+    bin_kmer = bin_kmer | (kmer_t)nimble::dna_codes[ next_base ];
+    return bin_kmer;
   }
 
   /*
@@ -209,12 +209,7 @@ class Aligner {
             cerr << "============================================================" << endl;
             print_read(seq);
         }
-
         bool detailed_debug = false;
-
-        if (seq->name.s == "14_52691501") {
-            detailed_debug = true;
-        }
 
         vector<pair<kmer_t, int>> matched_stars;
         bool has_correction = false;
@@ -231,17 +226,17 @@ class Aligner {
         while (i + 1 < L) {
             // update prev kmer, mask the leftmost character
             bin_kmer = get_next_kmer(bin_kmer, seq->seq.s[i + K], K);
-
-            // if (debug)
-            // cerr << "i=" << i << " 0-coord: " << i+1 << " " << mer_binary_to_string(bin_kmer, K) << " ";
+            // cerr << "current kmer: " << bin_kmer << endl;
 
             // check if kmer is present in the reference -- if not, try to correct it assuming a
             // mismatch first, indels second
             if (_index->has_kmer(bin_kmer) ) {
+                // cerr << "matched index" << endl;
                 // TODO: could be a FP -- reduce FP rate w/ cascading BF?
                 matched_kmers.push_back(1);
             }
             else {
+                // cerr << "didnt match index, attempting correction" << endl;
                 // mismatch? indel?
                 // TODO: step over the base if suspect an indel
                 char reference_base;
@@ -249,7 +244,7 @@ class Aligner {
                 bool mismatch = is_mismatch(seq->seq.s, i, bin_kmer, _index, reference_base, K, matched_kmers, seq->seq.l);
 
                 if (!mismatch) { // were not able to correct this as a mismatch
-                    if (debug)
+                    // if (debug)
                     // cerr << "could not resolve as MM ";
                     matched_kmers.push_back(0);
                     // TODO: is an indel?
@@ -265,7 +260,7 @@ class Aligner {
                     // mask the last base w/ the base suggested via correction
                     bin_kmer = (bin_kmer & mask ) | (kmer_t)nimble::dna_codes[reference_base];
                     // if (debug)
-                    // cerr << "\tcorrected kmer " << mer_binary_to_string(bin_kmer, K) << " ";
+                    // cerr << "\tcorrected kmer " << nimble::mer_binary_to_string(bin_kmer, K) << " ";
                 }
             }
 
@@ -299,7 +294,7 @@ class Aligner {
     void align_single_read(const kseq_t * seq, const int K, const bool DEBUG) {
         vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, DEBUG);
         if (DEBUG) {
-            cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
+            cerr << seq->name.s << "\t#matched stars: " << matched_stars.size() << ", pos in read: ";
             // print anchor positions
             for (auto& p : matched_stars) {
                 cerr << p.second << ",";
