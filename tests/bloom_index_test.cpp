@@ -22,7 +22,7 @@ TEST_CASE("BloomReferenceIndex: read index", "[readers]")
 
         SECTION("test that we read as many kmers as expected")
         {
-            REQUIRE(idx.size() == 9202);
+            REQUIRE(idx.size() == 9084);
         }
 
     }

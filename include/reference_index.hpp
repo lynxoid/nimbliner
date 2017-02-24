@@ -39,7 +39,8 @@ public:
 	/* returns true is this kmer is found among anchors, false otherwise*/
 	virtual bool is_anchor(const bin_kmer_t kmer) const =0;
 
-	virtual vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const =0;
+    // TODO: make into a shared_ptr
+	virtual vector<seed_position_t> & get_anchor_locations(const bin_kmer_t & kmer) const =0;
 
 };
 

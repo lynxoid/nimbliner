@@ -10,7 +10,7 @@ FLAGS=-O3 -std=c++11
 # DEBUGFLAGS=-g -fno-inline
 # DEBUGFLAGS=-g
 
-all: create-dir nb-sample nb-mapper nb-indexer nb-bit_tree tests
+all: create-dir nb-indexer nb-mapper tests nb-sample #nb-bit_tree
 
 create-dir:
 	mkdir -p $(BIN)

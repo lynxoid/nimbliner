@@ -29,6 +29,8 @@ public:
         seq = kseq_init( fileno(fp) );
     }
 
+    bool is_open() { return fp != NULL;}
+
     ~FastaReader() {
         kseq_destroy(seq);
         fclose( fp );
