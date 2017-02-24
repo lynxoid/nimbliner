@@ -19,7 +19,7 @@ docker build -t $TAG -f docker/Dockerfile .
 # run tests
 docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/nb_tests
 
-# run a smoke test
+# # run a smoke test
 mkdir -p data/smoke
 echo ">seq1" > data/smoke/ref1.fa
 echo "AACCGGTT" >> data/smoke/ref1.fa
@@ -32,3 +32,8 @@ echo /nimbliner/data/smoke/ref1.fa > data/smoke/reference.fofn
 echo /nimbliner/data/smoke/ref2.fa >> data/smoke/reference.fofn
 
 docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/indexer -i data/smoke/reference.fofn -k 3 -o data/smoke/reference
+echo ">read1" > data/smoke/reads.fa
+echo "AACC" >> data/smoke/reads.fa
+echo ">read2" >> data/smoke/reads.fa
+echo "TTAA" >> data/smoke/reads.fa
+docker run -i -v $PWD/data/:/nimbliner/data/ $TAG ./bin/mapper -i data/smoke/reads.fa -x data/smoke/reference

@@ -40,7 +40,7 @@ public:
 		t.restart();
 		_bit_tree->build_index(10);
 		cerr << "Building btTree index took: " << t.elapsed() << "s" << endl;
-		_anchorIndex.readStarLocations(stars_path, K);
+		_anchorIndex.readAnchors(stars_path, K);
 	}
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */
@@ -55,7 +55,7 @@ public:
 	}
 
 	// TODO: what does this & do? do we use it?
-	vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
+	vector<seed_position_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
 		// return (*_stars)[kmer];
         return _anchorIndex.get_anchor_locations(kmer);
 	}

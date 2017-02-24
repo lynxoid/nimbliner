@@ -28,7 +28,7 @@ namespace nimble {
 
 class AnchorIndex {
 
-    shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>> _anchors;
+    shared_ptr<unordered_map<kmer_t, vector<seed_position_t>>> _anchors;
 
 public:
 
@@ -49,7 +49,7 @@ public:
      * occurrences of this anchor. If kmer is not an anchor, returns an emplty
      * vector
      */
-    vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
+    vector<seed_position_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
         return (*_anchors)[kmer];
     }
 
@@ -62,20 +62,19 @@ public:
 	 * read kmers that serve as anchors
 	 *
 	 */
-    // TODO: rename to readAnchors
-	void readStarLocations(const string & prefix, const int K) {
+	void readAnchors(const string & prefix, const int K) {
 		cerr << "[AnchorIndex] reading anchors from " << prefix << EXT << endl;
 		auto start = std::chrono::system_clock::now();
 
-		_anchors = shared_ptr<unordered_map<kmer_t, vector<genomic_coordinate_t>>>(
-                new unordered_map<kmer_t, vector<genomic_coordinate_t>>()
-            );
-		ifstream in(prefix + EXT);
+		_anchors = shared_ptr<unordered_map<kmer_t, vector<seed_position_t>>>(
+                new unordered_map<kmer_t, vector<seed_position_t> >() );
 
-        if (!in) {
-            cerr << "[ERROR] [AnchorIndex] Could not open anchor index file " << prefix << EXT << endl;
-            exit(1);
-        }
+		ifstream in(prefix + EXT);
+        can_read_or_quit(in, prefix+EXT, true);
+        // if (!in) {
+            // cerr << "[ERROR] [AnchorIndex] Could not open anchor index file " << prefix << EXT << endl;
+            // exit(1);
+        // }
 
 		string line;
 		while (getline(in, line)) {
@@ -83,19 +82,19 @@ public:
 			std::stringstream ss(line);
 			string kmer, pos;
 			getline(ss, kmer, ' ');
-			uint64_t bin_kmer = stol(kmer);
-			_anchors->emplace(bin_kmer, vector<genomic_coordinate_t>{});
+			kmer_t bin_kmer = stol(kmer);
+			_anchors->emplace(bin_kmer, vector<seed_position_t>() );
+
+            reference_id_t ref_id = -1;
 			while(getline(ss, pos, ' ')) {
 	    		// int location = stoul(pos);
-	    		int location = stoi(pos);
-	    		(*_anchors)[bin_kmer].push_back(location);
-			}
-            // TODO: this should be done during anchor selection phase, not here
-            // remove anchors that occur more than 10K times
-			if ((*_anchors)[bin_kmer].size() > 10000) {
-				cerr << nimble::mer_binary_to_string(bin_kmer, K) << " " <<
-					(*_anchors)[bin_kmer].size() << endl;
-				_anchors->erase( _anchors->find(bin_kmer) );
+                if (pos[0] == '*') {
+                    ref_id = stoi(pos.substr(1));
+                }
+                else {
+	    		    genomic_coordinate_t location = stoi(pos);
+                    (*_anchors)[bin_kmer].emplace_back(ref_id, location);
+                }
 			}
 		}
 		in.close();
@@ -103,7 +102,6 @@ public:
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
 		cerr << "[AnchorIndex] reading anchors took: " << elapsed_seconds.count() << "s" << endl;
-		// return kmer_locations;
 	}
 
     /*
@@ -117,8 +115,8 @@ public:
         // TODO: check if can write
 		auto start = std::chrono::system_clock::now();
 
-        reference_id_t prev_ref_id = -1;
 		for (auto & anchor_pair : *anchors) {
+            reference_id_t prev_ref_id = -1;
 			star_locations_out << anchor_pair.first << " ";
 			for (const seed_position_t & loc : anchor_pair.second) {
                 if (prev_ref_id != loc.first) {

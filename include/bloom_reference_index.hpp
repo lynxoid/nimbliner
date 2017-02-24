@@ -186,7 +186,7 @@ public:
 		this->K = 0;
 		_bf = readKmers_bf_faster(index_prefix);
         // TODO: K is not set here -- ro anywhere
-        _anchorIndex.readStarLocations(index_prefix, this->K);
+        _anchorIndex.readAnchors(index_prefix, this->K);
 	}
 
 	/* returns true if this kmer was present in the reference sequence, false otherwise */
@@ -201,7 +201,7 @@ public:
 	}
 
 	// TODO: what does this & do? do we use it?
-	vector<genomic_coordinate_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
+	vector<seed_position_t> & get_anchor_locations(const bin_kmer_t & kmer) const {
 		return _anchorIndex.get_anchor_locations(kmer);
 	}
 
@@ -210,24 +210,16 @@ public:
      * this function and readIndex()
      */
     static void write_index(shared_ptr<unordered_map<kmer_t,uint8_t>> kmer_counts,
+        const uint K,
         const string & output_prefix) {
-		cerr << "[BloomFilterIndex] writing index kmers" << endl;
 		auto start = std::chrono::system_clock::now();
-
-		ofstream all_kmers(output_prefix + ".idx");
+		ofstream all_kmers(output_prefix + EXT);
         // TODO: check that can write
-
+        cerr << "[BloomFilterIndex] writing index kmers to " << output_prefix + EXT << endl;
+        // write out the K -- kmer length
+        all_kmers << K << endl;
 		// write the # of kmers to expect
 		all_kmers << kmer_counts->size() << endl;
-        // TODO: write out the K -- kmer length
-
-		// TODO
-		// cerr << "Sorting kmers" << endl;
-		// std::sort(kmer_locations->begin(), kmer_locations->end(), [](pair<> a, pair<> b) {
-			// return a.first < b.first;
-		// } );
-		// cerr << "Sorting took " << t.elapsed() << " s" << endl;
-		// t.restart();
 
 		int i = 0;
         // write and prune

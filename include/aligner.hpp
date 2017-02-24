@@ -24,17 +24,13 @@ class Aligner {
 
     /*
      */
-  vector<genomic_coordinate_t> findAllMatchingAnchorPositions(
+  vector<seed_position_t> findAllMatchingAnchorPositions(
     const vector<pair<kmer_t,int>> & matched_stars,
     const shared_ptr<ReferenceIndex> index) {
     assert(matched_stars.size() > 0);
 
-        // cerr << "(";
-        // for (auto & star : matched_stars)
-        //     cerr << star.second << " ";
-        // cerr << ") ";
-
-    vector<genomic_coordinate_t> mappings;
+    // TODO: make into a shared_ptr
+    vector<seed_position_t> mappings;
     auto first_star = matched_stars[0];
     auto second_star = matched_stars[1];
     // TODO: why +1 here? are matched_stars locations incorrect?
@@ -42,39 +38,49 @@ class Aligner {
     // cerr << "delta=" << delta << " ";
     // if (delta < 0)
 
-    // locations are sorted in increasing order
-    auto A = index->get_anchor_locations(first_star.first);
-    // cerr << "As ";
-    // for (auto loc : A) cerr << loc << " ";
+    // locations are sorted in increasing order of ref_id and of genomic_coordinate_t within a single ref
+    vector<seed_position_t> A = index->get_anchor_locations(first_star.first);
+    vector<seed_position_t> B = index->get_anchor_locations(second_star.first);
 
-    auto B = index->get_anchor_locations(second_star.first);
-    // cerr << "Bs ";
-    // for (auto loc : B) cerr << loc << " ";
     int i = 0, j = 0;
     while (i < A.size() && j < B.size() ) {
-      if (A[i] < B[j]) {
-        if (B[j] - A[i] == delta) {
-          // found a match
-          if (A[i] < first_star.second) {
-              cerr << "ERR:" << A[i] << " " << first_star.second << " " <<
-                second_star.second << endl;
-          }
-          mappings.push_back(A[i] - first_star.second);
-          i++;
-          j++;
+        // if ref_id on the first seed is less than ref_id on the second seed
+        if (A[i].first < B[j].first) {
+            // skip all seed locations on the first seed until ref_ids are equal
+            i++;
         }
-        else if (B[j] - A[i] < delta) {
-          j++;
+        else if (A[i].first > B[j].first) {
+            j++;
         }
         else {
-          i++;
+            // only try to resolve seed locations if they appear on the same chromo
+            if (A[i].second < B[j].second) {
+                // distance between seed hits in the read is the same as distance
+                // between seed occurrences on the chromo
+                // TODO: may want to allow for some fudge factor here to allow for indels
+                // (they would make this an inexact match)
+                if (B[j].second - A[i].second == delta) {
+                    // found a match
+                    if (A[i].second < first_star.second) {
+                        cerr << "ERR:" << A[i].second << " " << first_star.second << " " <<
+                        second_star.second << endl;
+                    }
+                    mappings.emplace_back(A[i].first, A[i].second - first_star.second);
+                    i++;
+                    j++;
+                }
+                else if (B[j].second - A[i].second < delta) {
+                    j++;
+                }
+                else {
+                    i++;
+                }
+            }
+            else {
+                j++;
+            }
         }
-      }
-      else {
-        j++;
-      }
     }
-        // cerr << " | " << mappings.size() << " ";
     return mappings;
   }
 
@@ -86,33 +92,31 @@ class Aligner {
   //  --***-***-
   //
   ////////////////////////////////////////////////////////
-  vector<genomic_coordinate_t> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars,
+  vector<seed_position_t> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars,
     // unordered_map<kmer_t, vector<int>> & star_locations,
     int & extend,
     const int K) {
-    vector<genomic_coordinate_t> mappings;
+    vector<seed_position_t> mappings;
 
     // what if no stars mapped?
     if (matched_stars.size() == 0) {
-      // need to extend the read until we hit some star
-      extend++;
-      // cerr << endl;
+        // need to extend the read until we hit some star
+        extend++;
+        // cerr << endl;
     }
     if (matched_stars.size() == 1) {
-      // that's the only thing we got going
-      // TODO: extend to find more stars
-      auto reference_locations = _index->get_anchor_locations(matched_stars[0].first);
-      for (auto loc : reference_locations) {
-                mappings.push_back(loc - matched_stars[0].second);
-                // cerr << mappings.back() << endl;
-            }
+        // that's the only thing we got going
+        // TODO: extend to find more stars
+        vector<seed_position_t> reference_locations = _index->get_anchor_locations(matched_stars[0].first);
+        for (const seed_position_t & loc : reference_locations) {
+            mappings.emplace_back(loc.first, loc.second - matched_stars[0].second);
+        }
     }
     else if (matched_stars.size() >= 2) {
-      // if two stars  or more
-      // TODO: take into account all the stars
-      mappings = findAllMatchingAnchorPositions(matched_stars, _index);
-            // for (auto p : mappings) cerr << p << " ";
-            // cerr << endl;
+        // if two stars  or more
+        // TODO: take into account all the stars; right now we only take 2 into
+        // account
+        mappings = findAllMatchingAnchorPositions(matched_stars, _index);
     }
 
     return mappings;
@@ -292,7 +296,7 @@ class Aligner {
      * Find potential seeds for this read, extend the alignments, and produce
      * cigar strings, etc
      */
-    vector<genomic_coordinate_t> align_single_read(const kseq_t * seq, const int K, const bool DEBUG) {
+    void align_single_read(const kseq_t * seq, const int K, const bool DEBUG) {
         vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, DEBUG);
         if (DEBUG) {
             cerr << seq->name.s << "\tmatched stars: " << matched_stars.size() << " ";
@@ -305,7 +309,8 @@ class Aligner {
 
         // resolve star kmers to get an exact mapping location
         int need_to_extend_read = 0;
-        auto mapping_locations = resolve_mapping_locations(matched_stars, need_to_extend_read, K);
+        vector<seed_position_t> mapping_locations =
+            resolve_mapping_locations(matched_stars, need_to_extend_read, K);
 
         // output all potential locations for this read
         // TODO: generate CIGAR strings and all
@@ -321,19 +326,18 @@ class Aligner {
         */
 
         cout << seq->name.s << "\t";
-        for (const auto & loc : mapping_locations) {
-          cout << loc << " ";
+        for (const seed_position_t & loc : mapping_locations) {
+            cout << loc.first << ":" << loc.second << " ";
         }
         cout << endl;
 
         if (DEBUG) {
             cerr << "mapping locations: " << mapping_locations.size() << " -- ";
-            for (const auto & loc : mapping_locations) {
-                cerr << loc << " ";
+            for (const seed_position_t & loc : mapping_locations) {
+                cerr << loc.first << ":" << loc.second << " ";
             }
             cerr << endl;
         }
-        return mapping_locations;
     }
 
 public:

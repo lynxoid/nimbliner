@@ -21,20 +21,6 @@
 
 namespace nimble {
 
-inline bool can_read_or_quit(const ifstream & in, const string & name, const bool quit = true) {
-    if (!in) {
-        cerr << "[ERROR] Can not read from file " << name << endl;
-        if (quit)
-            exit(1);
-        return false;
-    }
-    return true;
-}
-
-inline void can_write_or_quit(const ifstream & in) {
-
-}
-
 class ReferenceIndexBuilder {
 
 	// TODO: build reference index and pick anchors based on the
@@ -194,7 +180,7 @@ public:
         				}
         				else
         					(*anchors)[kmer].emplace_back(ref_id, i);
-        				i += offset - 1;
+        				i += offset;
         			}
         			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
         		}
@@ -231,7 +217,7 @@ public:
 
         // switch between different implementations of the index
         // nimble::ReferenceIndex::write_index(kmer_counts);
-		nimble::BloomReferenceIndex::write_index(kmer_counts, output_prefix);
+		nimble::BloomReferenceIndex::write_index(kmer_counts, K, output_prefix);
         // TODO: prune kmer_counts as we write them only keeping those that are
         // below frequency cutoff
 
