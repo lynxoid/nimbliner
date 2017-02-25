@@ -18,7 +18,7 @@
 #include "bloom_reference_index.hpp"
 // #include "bit_tree_binary.hpp"
 #include "definitions.hpp"
-
+#include "sparsepp/spp.h"
 namespace nimble {
 
 class ReferenceIndexBuilder {
@@ -105,7 +105,7 @@ public:
 	// 	return;
 	// }
 
-    shared_ptr<unordered_map<kmer_t, uint8_t>> build_pdBG(const string & fofn_path, const uint K) {
+  shared_ptr<spp::sparse_hash_map<kmer_t, uint8_t>> build_pdBG(const string & fofn_path, const uint K) {
         // open a fofn file, read one line at a time, parse fasta seqeunces at
         // every line
         ifstream fofn_in(fofn_path);
@@ -113,7 +113,7 @@ public:
         can_read_or_quit(fofn_in, fofn_path, true);
 
     	// TODO: use counting BF/perfect hash here
-        shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts(new unordered_map<kmer_t, uint8_t>() );
+        shared_ptr<spp::sparse_hash_map<kmer_t, uint8_t>> kmer_counts(new spp::sparse_hash_map<kmer_t, uint8_t>() );
 
         string fasta_path;
         while (getline(fofn_in, fasta_path)) {
@@ -151,7 +151,7 @@ public:
 
     shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > select_anchors(
         const string & fofn_path, const uint K, uint freq_cutoff,
-        shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts) {
+        shared_ptr<spp::sparse_hash_map<kmer_t, uint8_t>> kmer_counts) {
         ifstream fofn_in(fofn_path);
         can_read_or_quit(fofn_in, fofn_path, true);
         shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors(
@@ -202,7 +202,7 @@ public:
         const uint K) {
 
         cerr << "Pass 1: building background pdBG" << endl;
-        shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts =
+        shared_ptr<spp::sparse_hash_map<kmer_t, uint8_t>> kmer_counts =
             build_pdBG(fofn_path, K);
 
 
@@ -212,7 +212,7 @@ public:
 		const int x = 5;
 
 		// TODO: can keep linked lists since expect these lists to be short
-        // is LL less overhead than vector?
+        // is LL less overhead than vector? RP: No, vector is compact, contiguous memory. LL has per-element overhead
 		shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors =
             select_anchors(fofn_path, K, x, kmer_counts);
 

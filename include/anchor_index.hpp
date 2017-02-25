@@ -106,6 +106,7 @@ public:
 
     /*
 	 * TODO: sort and delta encode offsets; write out to a gzip
+   * Even before gzipping --- at least writing this out in binary would be much faster.
 	 */
 	static void write_anchors(shared_ptr<unordered_map<kmer_t, list<seed_position_t>>> anchors,
         const string & output_prefix) {
@@ -115,7 +116,9 @@ public:
         // TODO: check if can write
 		auto start = std::chrono::system_clock::now();
 
+    size_t i{0};
 		for (auto & anchor_pair : *anchors) {
+      //if (i % 10000 == 0) { std::cerr << "writing anchor pair " << i << "\n"; }
             reference_id_t prev_ref_id = -1;
 			star_locations_out << anchor_pair.first << " ";
 			for (const seed_position_t & loc : anchor_pair.second) {

@@ -22,6 +22,7 @@
 #include "reference_index.hpp"
 #include "anchor_index.hpp"
 #include "definitions.hpp"
+#include "sparsepp/spp.h"
 
 using namespace std;
 
@@ -209,7 +210,7 @@ public:
      * Writes all kmers in the index in the format that is agreed upon between
      * this function and readIndex()
      */
-    static void write_index(shared_ptr<unordered_map<kmer_t,uint8_t>> kmer_counts,
+  static void write_index(shared_ptr<spp::sparse_hash_map<kmer_t,uint8_t>> kmer_counts,
         const uint K,
         const string & output_prefix) {
 		auto start = std::chrono::system_clock::now();
@@ -221,6 +222,20 @@ public:
 		// write the # of kmers to expect
 		all_kmers << kmer_counts->size() << endl;
 
+    /*
+    int group_size{10000};
+    using iter_t = decltype(spp::sparse_hash_map<kmer_t, uint8_t>);
+    std::vector<iter_t> to_remove;
+    to_remove.reserve(group_size);
+    */
+
+    // Why prune *during* the writing?  Can we try a simple loop instead?
+    int i{0};
+    for (auto& kit : (*kmer_counts)) {
+      all_kmers << kit.first << "\n";
+      ++i;
+    }
+    /*
 		int i = 0;
         // write and prune
 		while (kmer_counts->size() > 0) {
@@ -229,8 +244,12 @@ public:
 			kmer_counts->erase(it);
 			i++;
 		}
+    */
 		all_kmers.close();
 		cerr << "[BloomFilterIndex] wrote " << i << " kmers" << endl;
+    kmer_counts->clear();
+    // note: resize doesn't exist in unordered_map, only spp::sparse_hash_map
+    kmer_counts->resize(0);
 		assert(kmer_counts->size() == 0);
 
 		auto end = std::chrono::system_clock::now();

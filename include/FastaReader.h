@@ -2,18 +2,18 @@
 #define FASTA_READER_H
 
 #include <zlib.h>
-#include <stdio.h>
+#include <cstdio>
 #include "kseq.h"
 #include "unistd.h"
 #include "fcntl.h"
 
 #ifndef KSEQ
-// KSEQ_INIT(gzFile, gzread)
-KSEQ_INIT(int, read)
+KSEQ_INIT(gzFile, gzread)
+//KSEQ_INIT(int, read)
 #endif
 
 class FastaReader {
-    FILE * fp;
+    gzFile fp;
     // int fp; // file handler
     kseq_t *seq;
     int l;
@@ -21,19 +21,21 @@ class FastaReader {
 public:
 
     FastaReader(const char * fname) {
-        fp = fopen(fname, "r"); // TODO: check params
+      //fp = fopen(fname, "r"); // TODO: check params
+      fp = gzopen(fname, "r");
         if (fp == NULL) {
             printf("Could not open file %s\n", fname);
             return;
         }
-        seq = kseq_init( fileno(fp) );
+        seq = kseq_init(fp);
     }
 
     bool is_open() { return fp != NULL;}
 
     ~FastaReader() {
         kseq_destroy(seq);
-        fclose( fp );
+        //fclose( fp );
+        gzclose(fp);
     }
 
     kseq_t * nextSequence() {
