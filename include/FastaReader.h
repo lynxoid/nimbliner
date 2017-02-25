@@ -38,7 +38,7 @@ public:
 
     kseq_t * nextSequence() {
         l = kseq_read(seq);
-        if (l < 0) return NULL;
+        if (l < 0) return nullptr;
         else return seq;
     }
 };
