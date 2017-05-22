@@ -16,9 +16,11 @@
 #include "bf/bloom_filter/counting.h"
 #include "bf/hash.h"
 
+#include "kmer_stream.hpp"
 #include "FastaReader.h"
 #include "anchor_index.hpp"
 #include "bloom_reference_index.hpp"
+#include "kseq.h"
 // #include "bit_tree_binary.hpp"
 #include "fofn_reader.hpp"
 #include "definitions.hpp"
@@ -64,8 +66,9 @@ public:
         uint counting_bits = 3;
         // may expect around 3 * 10^9 kmers
         uint64_t elements = 3 * 10^9;
+        bf::hasher h = bf::make_hasher(2, 2147483647, true); // bf::make_hasher(2)
         shared_ptr<bf::counting_bloom_filter> cbf = shared_ptr<bf::counting_bloom_filter>(new
-                bf::counting_bloom_filter(bf::make_hasher(2), /* hasing fun-ns */
+                bf::counting_bloom_filter(h, /* hasing fun-ns */
                                           elements,           /* expected # elem */
                                           counting_bits) );   /* bit per counter */
 
@@ -73,16 +76,11 @@ public:
         while ( (seq = fofn_reader.getNextSequence() ) ) {
             string chr = seq->seq.s;
             cerr << "Chromo " << chr.size() << "bp " << K << endl;
-            // get all kmers from this sequence
+
+            KmerStream kmer_stream(seq->seq.s, seq->seq.l, K);
     		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
-                // TODO: use a rolling binary transform here to get the next kmer
-    			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
-    			// if (kmer_counts->find(kmer) == kmer_counts->end() ) {
-                //     (*kmer_counts)[kmer] = 1;
-    			// }
-    			// else {
-    			// 	if ( (*kmer_counts)[kmer] < 255)
-    			// 		(*kmer_counts)[kmer]++;
+    			// kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
+                kmer_t kmer = kmer_stream.getNextBinKmer();
                 if (cbf->lookup(kmer) < 2^counting_bits) {
                     cbf->add(kmer);
     			// else -- do not increment to avoid overflow
@@ -93,6 +91,7 @@ public:
         }
         cerr << endl;
         // return kmer_counts;
+        exit(1);
         return cbf;
     }
 
