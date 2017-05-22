@@ -10,13 +10,13 @@ FLAGS=-O3 -std=c++11
 # DEBUGFLAGS=-g -fno-inline
 # DEBUGFLAGS=-g
 
-all: create-dir nb-indexer nb-mapper tests nb-sample #nb-bit_tree
+all: create-dir indexer nb-mapper tests nb-sample #nb-bit_tree
 
 create-dir:
 	mkdir -p $(BIN)
 
-nb-indexer: create-dir
-	g++ $(FLAGS) -o $(BIN)/indexer $(SRC)/index_builder.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB)
+indexer: create-dir
+	g++ $(FLAGS) -o $(BIN)/$(@) $(SRC)/index_builder.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB) -lbf
 
 nb-sample: create-dir
 	g++ $(FLAGS) -o $(BIN)/sample $(SRC)/sample_reads.cpp $(INCLUDE) $(LIB)
@@ -27,6 +27,9 @@ nb-mapper: create-dir
 
 nb-bit_tree: create-dir
 	g++ $(FLAGS) -o $(BIN)/bit_tree $(SRC)/bit_tree_binary.cpp $(INCLUDE) $(BOOST_INCLUDE) $(LIB)
+
+test_cbf: create-dir
+	g++ $(FLAGS) -fopenmp -o $(BIN)/$(@) $(SRC)/test_count_bf.cpp $(INCLUDE) $(LIB) -I /btl_bloomfilter-master/
 
 clean:
 	rm -f $(BIN)/*

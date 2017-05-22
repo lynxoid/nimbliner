@@ -23,6 +23,9 @@ RUN wget https://github.com/mavam/libbf/archive/v0.1-beta.tar.gz && \
   cd libbf-0.1-beta && \
   ./configure && make && make install
 
+# move to the run above
+RUN apt-get install -y time
+
 ENV LD_LIBRARY_PATH /usr/local/lib/
 
 COPY . /nimbliner/

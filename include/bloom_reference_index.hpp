@@ -238,6 +238,12 @@ public:
 	    cerr << "[BloomFilterIndex] Saving kmers took: " << elapsed_seconds_str.count() << "s" << endl;
 		kmer_counts->clear();
     }
+
+    static void write_index(shared_ptr<bf::counting_bloom_filter> kmer_counts,
+        const uint K,
+        const string & output_prefix) {
+        cerr << "TODO" << endl;
+	}
 };
 
 }
