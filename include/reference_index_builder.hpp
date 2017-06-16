@@ -36,13 +36,14 @@ namespace nimble {
                 m[kmer]++;
     }
 
+    // TODO document
     void add_to_map(shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors,
-        const bin_kmer_t kmer, const reference_id_t ref_id, const genomic_coordinate_t pos) {
-        if (anchors->find(kmer) == anchors->end() ) {
-            anchors->emplace(kmer, list<seed_position_t>{{ref_id,pos}});
-        }
-        else
-            (*anchors)[kmer].emplace_back(ref_id, pos);
+      const bin_kmer_t kmer, const reference_id_t ref_id, const genomic_coordinate_t pos) {
+      if (anchors->find(kmer) == anchors->end() ) {
+        anchors->emplace(kmer, list<seed_position_t>{{ref_id,pos}});
+      }
+      else
+        (*anchors)[kmer].emplace_back(ref_id, pos);
     }
 
 
@@ -56,108 +57,87 @@ public:
 
     // open a fofn file, read one line at a time, parse fasta seqeunces at
     // every line
-    // shared_ptr<unordered_map<kmer_t, uint8_t>>
-    shared_ptr<bf::counting_bloom_filter> build_pdBG(const string & fofn_path, const uint K) {
-        FOFNReader fofn_reader(fofn_path);
-        // shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts(new unordered_map<kmer_t, uint8_t>() );
-
-        // we only care about very rare kmers, so anything above 5 will be
-        // considered frequent -> ceil(log_2 (5)) = 3
-        uint counting_bits = 3;
-        // may expect around 3 * 10^9 kmers
-        uint64_t elements = 3 * 10^9;
-        bf::hasher h = bf::make_hasher(2, 2147483647, true); // bf::make_hasher(2)
-        shared_ptr<bf::counting_bloom_filter> cbf = shared_ptr<bf::counting_bloom_filter>(new
-                bf::counting_bloom_filter(h, /* hasing fun-ns */
-                                          elements,           /* expected # elem */
-                                          counting_bits) );   /* bit per counter */
-
-        kseq_t * seq;
-        while ( (seq = fofn_reader.getNextSequence() ) ) {
-            string chr = seq->seq.s;
-            cerr << "Chromo " << chr.size() << "bp " << K << endl;
-
-            KmerStream kmer_stream(seq->seq.s, seq->seq.l, K);
-    		for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
-    			// kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
-                kmer_t kmer = kmer_stream.getNextBinKmer();
-                if (cbf->lookup(kmer) < 2^counting_bits) {
-                    cbf->add(kmer);
-    			// else -- do not increment to avoid overflow
-    			}
-    			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
-    		}
-            // cerr << "(" << kmer_counts->size() << " kmers) " << endl;
+    shared_ptr<unordered_map<kmer_t,uint8_t>> build_pdBG(const string & fofn_path, const uint K) {
+      FOFNReader fofn_reader(fofn_path);
+      // we only care about very rare kmers, so anything above 5 will be
+      // considered frequent -> ceil(log_2 (5)) = 3 -- only need 3 bits for this
+      shared_ptr<unordered_map<kmer_t,uint8_t>> map(new unordered_map<kmer_t,uint8_t>());
+      kseq_t * seq;
+      while ( (seq = fofn_reader.getNextSequence() ) ) {
+        cerr << "Chromo " << seq->name.s << ", " << seq->seq.l << "bp " << K << endl;
+        KmerStream kmer_stream(seq->seq.s, seq->seq.l, K);
+        for (genomic_coordinate_t i = 0; i < seq->seq.l - K + 1; i++) {
+          kmer_t kmer = kmer_stream.getNextBinKmer();
+          if (map->find(kmer) == map->end() ) {
+            (*map)[kmer] = 1;
+          }
+          else {
+            if ( (*map)[kmer] < 255 )
+              (*map)[kmer]++;
+          }
+          if (i % 1000000 == 0) cerr << i/1000000 << "Mbp, " << map->size() << " kmers | ";
         }
-        cerr << endl;
-        // return kmer_counts;
-        exit(1);
-        return cbf;
+      }
+      return map;
     }
 
+    // keep kmers at 0, offset, 2offset, 3offset positions if their frequency is
+    // below freq_cutoff; otherwise skip that kmer_t
+    // TODO: may end up with long runs w/o kmers -- confirm that they are the
+    // low complexity regions
     shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > select_anchors(
-        const string & fofn_path, const uint K, uint freq_cutoff,
-        // shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts) {
-        shared_ptr<bf::counting_bloom_filter> kmer_counts,
-        const int offset = 50) {
-        FOFNReader fofn_reader(fofn_path);
-        shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors(
-            new unordered_map<kmer_t, list<seed_position_t> >());
+      const string & fofn_path, const uint K, const uint freq_cutoff,
+      shared_ptr<unordered_map<kmer_t,uint8_t>> kmer_counts,
+      // shared_ptr<bf::counting_bloom_filter> kmer_counts,
+      const int offset = 30) {
+      FOFNReader fofn_reader(fofn_path);
+      shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors(
+        new unordered_map<kmer_t, list<seed_position_t> >());
 
-        unordered_map<kmer_t,uint32_t> actual_counts;
-
-        reference_id_t ref_id = 0;
-        kseq_t * seq;
-        while ( (seq = fofn_reader.getNextSequence() ) ) {
-            string chr = seq->seq.s;
-            for (genomic_coordinate_t i = 0; i < chr.size() - K + 1; i++) {
-                // TODO: use a rolling approach to get next kmer
-    			kmer_t kmer = nimble::mer_string_to_binary(&chr[i], K);
-                increment_map(actual_counts, kmer);
-    			if ( kmer_counts->lookup(kmer) < freq_cutoff) {
-                    add_to_map(anchors, kmer, ref_id, i);
-    				i += offset;
-    			}
-                else {
-                    cerr << "kmer count above " << freq_cutoff << " true count: " <<
-                        actual_counts[kmer] << endl;
-                }
-    			if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
-    		}
-            // increment reference sequence index
-            ref_id++;
-            cerr << "(" << anchors->size() << " anchors from " << ref_id << " reference sequences)" << endl;
+      reference_id_t ref_id = 0;
+      kseq_t * seq;
+      while ( (seq = fofn_reader.getNextSequence() ) ) {
+        cerr << seq->name.s << " ";
+        KmerStream kmer_stream(seq->seq.s, seq->seq.l, K);
+        for (genomic_coordinate_t i = 0; i < seq->seq.l - K + 1; i++) {
+          kmer_t kmer = kmer_stream.getNextBinKmer();
+          if ( (*kmer_counts)[kmer] < freq_cutoff) {
+            add_to_map(anchors, kmer, ref_id, i);
+            i += offset;
+          }
+          // else: try next available kmer
+          if (i % 1000000 == 0) cerr << i/1000000 << "Mbp ";
         }
-        return anchors;
+        // increment reference sequence index
+        ref_id++;
+        cerr << "(" << anchors->size() << " anchors from " << ref_id << " reference sequences)" << endl;
+      }
+      return anchors;
     }
 
-    /*
-     * build index in 2 passes
-     */
+  /*
+   * build index in 2 passes
+   */
 	void buildIndex(const string & fofn_path, const string & output_prefix,
-        const uint K) {
-        cerr << "Pass 1: building background pdBG" << endl;
-        // shared_ptr<unordered_map<kmer_t, uint8_t>> kmer_counts =
-        shared_ptr<bf::counting_bloom_filter> kmer_counts =
-            build_pdBG(fofn_path, K);
+    const uint K) {
+    cerr << "Pass 1: building background pdBG" << endl;
+    shared_ptr<unordered_map<kmer_t,uint8_t>> kmer_counts = build_pdBG(fofn_path, K);
 
-		cerr << "Pass 2: selecting anchors" << endl;
-        // TODO: expose as a paramter
-		const int x = 5;
-		// TODO: can keep linked lists since expect these lists to be short
-        // is LL less overhead than vector?
-		shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors =
-            select_anchors(fofn_path, K, x, kmer_counts);
+    cerr << "Pass 2: selecting anchors" << endl;
+    // TODO: expose as a paramter
+    const int x = 5;
+    shared_ptr<unordered_map<kmer_t, list<seed_position_t> > > anchors =
+      select_anchors(fofn_path, K, x, kmer_counts);
 
-        // switch between different implementations of the index
-        // nimble::ReferenceIndex::write_index(kmer_counts);
-		nimble::BloomReferenceIndex::write_index(kmer_counts, K, output_prefix);
-        // TODO: prune kmer_counts as we write them only keeping those that are
-        // below frequency cutoff
-		nimble::AnchorIndex::write_anchors(anchors, output_prefix);
-		// bit tree representation will take less space
-		// write_bit_tree_index(kmer_locations, K);
-		return;
+    // switch between different implementations of the index
+    // nimble::ReferenceIndex::write_index(kmer_counts);
+    nimble::BloomReferenceIndex::write_index(kmer_counts, K, output_prefix);
+    // TODO: prune kmer_counts as we write them only keeping those that are
+    // below frequency cutoff
+    nimble::AnchorIndex::write_anchors(anchors, output_prefix);
+    // bit tree representation will take less space
+    // write_bit_tree_index(kmer_locations, K);
+    return;
 	}
 };
 
