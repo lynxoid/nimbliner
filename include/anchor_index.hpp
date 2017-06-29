@@ -84,9 +84,8 @@ public:
 			getline(ss, kmer, ' ');
 			kmer_t bin_kmer = stol(kmer);
 			_anchors->emplace(bin_kmer, vector<seed_position_t>() );
-
-            reference_id_t ref_id = -1;
-			while(getline(ss, pos, ' ')) {
+			reference_id_t ref_id = -1;
+			while (getline(ss, pos, ' ')) {
 	    		// int location = stoul(pos);
                 if (pos[0] == '*') {
                     ref_id = stoi(pos.substr(1));
@@ -96,8 +95,12 @@ public:
                     (*_anchors)[bin_kmer].emplace_back(ref_id, location);
                 }
 			}
+			if (_anchors->size() % 1000000 == 0) {
+				cerr << _anchors->size() / 1000000 << "m ";
+			}
 		}
 		in.close();
+		cerr << endl;
 
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;

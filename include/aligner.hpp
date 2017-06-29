@@ -24,15 +24,15 @@ class Aligner {
 
     /*
      */
-  vector<seed_position_t> findAllMatchingAnchorPositions(
-    const vector<pair<kmer_t,int>> & matched_stars,
+  shared_ptr<vector<seed_position_t>> findAllMatchingAnchorPositions(
+    const shared_ptr<vector<pair<kmer_t,int>>> matched_stars,
     const shared_ptr<ReferenceIndex> index) {
-    assert(matched_stars.size() > 0);
+    assert(matched_stars->size() > 0);
 
     // TODO: make into a shared_ptr
-    vector<seed_position_t> mappings;
-    auto first_star = matched_stars[0];
-    auto second_star = matched_stars[1];
+    shared_ptr<vector<seed_position_t>> mappings(new vector<seed_position_t>());
+    auto first_star = (*matched_stars)[0];
+    auto second_star = (*matched_stars)[1];
     // TODO: why +1 here? are matched_stars locations incorrect?
     int delta = second_star.second - first_star.second;
     // cerr << "delta=" << delta << " ";
@@ -65,7 +65,7 @@ class Aligner {
                         cerr << "ERR:" << A[i].second << " " << first_star.second << " " <<
                         second_star.second << endl;
                     }
-                    mappings.emplace_back(A[i].first, A[i].second - first_star.second);
+                    mappings->emplace_back(A[i].first, A[i].second - first_star.second);
                     i++;
                     j++;
                 }
@@ -92,33 +92,32 @@ class Aligner {
   //  --***-***-
   //
   ////////////////////////////////////////////////////////
-  vector<seed_position_t> resolve_mapping_locations(const vector<pair<kmer_t,int>> & matched_stars,
+  shared_ptr<vector<seed_position_t>> resolve_mapping_locations(const shared_ptr<vector<pair<kmer_t,int>>> matched_stars,
     // unordered_map<kmer_t, vector<int>> & star_locations,
     int & extend,
     const int K) {
-    vector<seed_position_t> mappings;
+    shared_ptr<vector<seed_position_t>> mappings(new vector<seed_position_t>());
 
     // what if no stars mapped?
-    if (matched_stars.size() == 0) {
+    if (matched_stars->size() == 0) {
         // need to extend the read until we hit some star
         extend++;
         // cerr << endl;
     }
-    if (matched_stars.size() == 1) {
+    if (matched_stars->size() == 1) {
         // that's the only thing we got going
         // TODO: extend to find more stars
-        vector<seed_position_t> reference_locations = _index->get_anchor_locations(matched_stars[0].first);
+        vector<seed_position_t> reference_locations = _index->get_anchor_locations((*matched_stars)[0].first);
         for (const seed_position_t & loc : reference_locations) {
-            mappings.emplace_back(loc.first, loc.second - matched_stars[0].second);
+            mappings->emplace_back(loc.first, loc.second - (*matched_stars)[0].second);
         }
     }
-    else if (matched_stars.size() >= 2) {
+    else if (matched_stars->size() >= 2) {
         // if two stars  or more
         // TODO: take into account all the stars; right now we only take 2 into
         // account
         mappings = findAllMatchingAnchorPositions(matched_stars, _index);
     }
-
     return mappings;
   }
 
@@ -146,7 +145,7 @@ class Aligner {
       // TODO: check for mismatches in the first kmer (may affect the next K-1 kmers if we don't check)
    */
   kmer_t handle_first_kmer(kmer_t bin_kmer, vector<bool> & matched_kmers,
-      vector<pair<kmer_t, int>> & matched_stars) {
+      shared_ptr<vector<pair<kmer_t, int>>> matched_stars) {
       if (_index->has_kmer(bin_kmer) ) {
           matched_kmers.push_back(1);
       }
@@ -154,7 +153,7 @@ class Aligner {
           matched_kmers.push_back(0);
       }
       if ( _index->is_anchor(bin_kmer) ) {
-          matched_stars.emplace_back(bin_kmer, 0);
+          matched_stars->emplace_back(bin_kmer, 0);
       }
       return bin_kmer;
   }
@@ -204,14 +203,14 @@ class Aligner {
     /*
      *
      */
-    vector<pair<kmer_t, int>> find_anchors(const kseq_t * seq, const short K, bool debug = true) {
+    shared_ptr<vector<pair<kmer_t, int>>> find_anchors(const kseq_t * seq, const short K, bool debug = true) {
         if (debug) {
             cerr << "============================================================" << endl;
             print_read(seq);
         }
         bool detailed_debug = false;
 
-        vector<pair<kmer_t, int>> matched_stars;
+        shared_ptr<vector<pair<kmer_t, int>>> matched_stars(new vector<pair<kmer_t, int>>());
         bool has_correction = false;
         int L = seq->seq.l - K + 1;
         assert(L < 65536); // only allow reads shorter than 2^16. WHY? aug 13 2016
@@ -267,7 +266,7 @@ class Aligner {
             if ( _index->is_anchor(bin_kmer) &&  matched_kmers.back() == 1 &&
                 matched_kmers[matched_kmers.size() - 2] == 1 ) {
                 // using i+1 since that makes it a 1-based coord system relative to read start
-                matched_stars.emplace_back(bin_kmer, i + 1);
+                matched_stars->emplace_back(bin_kmer, i + 1);
             }
 
             i++;
@@ -292,11 +291,11 @@ class Aligner {
      * cigar strings, etc
      */
     void align_single_read(const kseq_t * seq, const int K, const bool DEBUG) {
-        vector<pair<kmer_t, int>> matched_stars = find_anchors(seq, K, DEBUG);
+        shared_ptr<vector<pair<kmer_t, int>>> matched_stars = find_anchors(seq, K, DEBUG);
         if (DEBUG) {
-            cerr << seq->name.s << "\t#matched stars: " << matched_stars.size() << ", pos in read: ";
+            cerr << seq->name.s << "\t#matched stars: " << matched_stars->size() << ", pos in read: ";
             // print anchor positions
-            for (auto& p : matched_stars) {
+            for (auto& p : *matched_stars) {
                 cerr << p.second << ",";
             }
             cerr << " ";
@@ -304,7 +303,7 @@ class Aligner {
 
         // resolve star kmers to get an exact mapping location
         int need_to_extend_read = 0;
-        vector<seed_position_t> mapping_locations =
+        shared_ptr<vector<seed_position_t>> mapping_locations =
             resolve_mapping_locations(matched_stars, need_to_extend_read, K);
 
         // output all potential locations for this read
@@ -321,14 +320,14 @@ class Aligner {
         */
 
         cout << seq->name.s << "\t";
-        for (const seed_position_t & loc : mapping_locations) {
+        for (const seed_position_t & loc : *mapping_locations) {
             cout << loc.first << ":" << loc.second << " ";
         }
         cout << endl;
 
         if (DEBUG) {
-            cerr << "mapping locations: " << mapping_locations.size() << " -- ";
-            for (const seed_position_t & loc : mapping_locations) {
+            cerr << "mapping locations: " << mapping_locations->size() << " -- ";
+            for (const seed_position_t & loc : *mapping_locations) {
                 cerr << loc.first << ":" << loc.second << " ";
             }
             cerr << endl;
@@ -356,17 +355,17 @@ public:
           read_count++;
 
           if (read_count % 100000 == 0)
-              cerr << read_count / 100000 << "00K ";
+              cerr << read_count / 100000 << "00K " << elapsed_seconds_str.count() << "s ";
           if (seq->seq.l < _index->getK() ) {
               continue;
           }
           auto start = std::chrono::system_clock::now();
-          align_single_read(seq, _index->getK(), true);
+          align_single_read(seq, _index->getK(), debug);
           auto end = std::chrono::system_clock::now();
           elapsed_seconds_str += end - start;
 
 // DEBUG
-          if (read_count >= 1000) break;
+          if (read_count >= 1000000) break;
 // DEBUG
 
       }
